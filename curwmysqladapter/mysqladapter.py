@@ -2,8 +2,6 @@
 
 import pymysql.cursors, hashlib, collections, json, traceback
 
-MyStruct = collections.namedtuple("MyStruct", "field1 field2 field3")
-
 class mysqladapter :
     def __init__(self, host="localhost", user="root", password="", db="curw") :
         '''Initialize Database Connection'''
@@ -24,9 +22,6 @@ class mysqladapter :
 
         print ("Database version : %s " % data)
 
-        # disconnect from server
-        #self.connection.close()
-
 
     def getEventId(self, metaData) :
         '''Get the event id for given meta data
@@ -44,14 +39,18 @@ class mysqladapter :
             'end_date': '2017-05-03 23:00:00'
         }
         If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
-        If end_date   is not set, use default date as "01 Jan 2100 00:00:00 GMT"
+        If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
         :return str: sha256 hash value in hex format (length of 64 characters)
         '''
-        print('getEventId')
         eventId = None
-        print(json.dumps(metaData, sort_keys=True).encode("ascii"))
         m = hashlib.sha256()
+
+        if 'start_date' in metaData :
+            metaData['start_date'] = '1970-01-01 00:00:00'
+        if 'end_date' in metaData :
+            metaData['end_date'] = '2050-01-01 00:00:00'
+
         m.update(json.dumps(metaData, sort_keys=True).encode("ascii"))
         possibleId = m.hexdigest()
         try:
@@ -83,13 +82,11 @@ class mysqladapter :
             'start_date': '2017-05-01 00:00:00',
             'end_date': '2017-05-03 23:00:00'
         }
+        If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
+        If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
         :return str: sha256 hash value in hex format (length of 64 characters)
         '''
-        print('createEventId')
-        #d = MyStruct("foo", "bar", "baz")
-        #d = { 'name': 'Gihan', 'send': '123' }
-        print(json.dumps(metaData, sort_keys=True).encode("ascii"))
         m = hashlib.sha256()
         m.update(json.dumps(metaData, sort_keys=True).encode("ascii"))
         eventId = m.hexdigest()
@@ -114,13 +111,13 @@ class mysqladapter :
                 cursor.execute(sql[4], (metaData['source']))
                 sourceId = cursor.fetchone()[0]
 
-                print('stationId', metaData['station'], '>', stationId)
-                print('variableId', metaData['variable'], '>', variableId)
-                print('unitId', metaData['unit'], '>', unitId)
-                print('typeId', metaData['type'], '>', typeId)
-                print('sourceId', metaData['source'], '>', sourceId)
-
                 sql = "INSERT INTO `run` (`id`, `name`, `start_date`, `end_date`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                
+                if 'start_date' in metaData :
+                    metaData['start_date'] = '1970-01-01 00:00:00'
+                if 'end_date' in metaData :
+                    metaData['end_date'] = '2050-01-01 00:00:00'
+
                 sqlValues = (
                     eventId,
                     metaData['name'],
@@ -132,7 +129,6 @@ class mysqladapter :
                     typeId,
                     sourceId
                 )
-                print(sqlValues)
                 cursor.execute(sql, sqlValues)
                 self.connection.commit()
 
@@ -143,7 +139,6 @@ class mysqladapter :
 
     def insertTimeseries(self, eventId, timeseries) :
         '''Insert timeseries into the db against given eventId'''
-        print('insertTimeSeries')
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
@@ -181,9 +176,14 @@ class mysqladapter :
 
     def getEventIds(self) :
         '''Get event ids set according to given meta data'''
-        print('getEventIds')
+        print('getEventIds not implemented.')
 
     def retrieveTimeseries(self) :
         '''Get timeseries'''
-        print('retrieveTimeSeries')
+        print('retrieveTimeSeries not implemented.')
+
+    def close(self) :
+        # disconnect from server
+        self.connection.close()
+
 

@@ -23,7 +23,7 @@ This package contains MySQL adapter that helps to store and retrieve multiple We
 
 The last stable release is available on PyPI and can be installed with ``pip``::
 
-    $ pip install pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git
+    $ pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git
 
 ## Documentation
 
@@ -72,6 +72,8 @@ else:
     print('%s rows deleted.' % deleteCount)
     rowCount = adapter.insertTimeseries(eventId, timeseries)
     print('%s rows inserted.' % rowCount)
+
+adapter.close()
 ```
 
 ## Resources

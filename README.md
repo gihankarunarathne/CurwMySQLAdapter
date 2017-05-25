@@ -25,6 +25,10 @@ The last stable release is available on PyPI and can be installed with ``pip``::
 
     $ pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git
 
+In order to update the package with latest changes, use `-U` or `--upgrade`
+
+    $ pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git -U
+
 ## Documentation
 
 Documentation is available online soon: http://curwmysqladapter.readthedocs.io/
@@ -68,9 +72,7 @@ if eventId is None :
     rowCount = adapter.insertTimeseries(eventId, timeseries)
     print('%s rows inserted.' % rowCount)
 else:
-    deleteCount = adapter.deleteTimeseries(eventId)
-    print('%s rows deleted.' % deleteCount)
-    rowCount = adapter.insertTimeseries(eventId, timeseries)
+    rowCount = adapter.insertTimeseries(eventId, timeseries, True)
     print('%s rows inserted.' % rowCount)
 
 adapter.close()

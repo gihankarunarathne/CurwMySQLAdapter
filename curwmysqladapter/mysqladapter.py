@@ -138,11 +138,26 @@ class mysqladapter :
         return eventId
 
     def insertTimeseries(self, eventId, timeseries) :
-        '''Insert timeseries into the db against given eventId'''
+        '''Insert timeseries into the db against given eventId
+
+        :param string eventId: Hex Hash value that need to store timeseries against.
+
+        :param list   timeseries: List of time series of time & value list ['2017-05-01 00:00:00', 1.08]
+        E.g. [ ['2017-05-01 00:00:00', 1.08], ['2017-05-01 01:00:00', 2.04], ... ]
+
+        :param boolean upsert: If True, upsert existing values ON DUPLICATE KEY. Default is False.
+        Ref: 1). https://stackoverflow.com/a/14383794/1461060 
+             2). https://chartio.com/resources/tutorials/how-to-insert-if-row-does-not-exist-upsert-in-mysql/
+
+        :return int: Affected row count.
+        '''
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
                 sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s)"
+
+                if upsert :
+                    sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
                 newTimeseries = []
                 for t in timeseries :
@@ -160,7 +175,12 @@ class mysqladapter :
             return rowCount
 
     def deleteTimeseries(self, eventId) :
-        '''Delete given timeseries from the database'''
+        '''Delete given timeseries from the database
+
+        :param string eventId: Hex Hash value that need to delete timeseries against
+
+        :return int: Affected row count.
+        '''
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:

@@ -28,8 +28,8 @@ CREATE TABLE `curw`.`source` (
 CREATE TABLE `curw`.`station` (
   `id` INT NOT NULL,
   `name` VARCHAR(45) NOT NULL,
-  `x` FLOAT NOT NULL,
-  `y` FLOAT NOT NULL,
+  `latitude` FLOAT NOT NULL,
+  `longitude` FLOAT NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC)
 );
@@ -128,18 +128,23 @@ INSERT INTO source VALUES
   (4, 'FLO2D'),
   (5, 'EPM');
 
-INSERT INTO curw.station (id, name, x, y)
+INSERT INTO curw.station (`id`, `name`, `latitude`, `longitude`)
 VALUES
   (1, 'Attanagalla', 7.111666667,  80.14983333),
-  (2, 'Colombo', 0.0, 0.0),
+  (2, 'Colombo', 6.898158, 79.8653),
   (3, 'Daraniyagala', 6.924444444, 80.33805556),
   (4, 'Glencourse', 6.978055556, 80.20305556),
   (5, 'Hanwella', 6.909722222, 80.08166667),
   (6, 'Holombuwa', 7.185166667, 80.26480556),
   (7, 'Kitulgala', 6.989166667, 80.41777778),
-  (8, 'Norwood', 6.835638889, 80.61466667);
+  (8, 'Norwood', 6.835638889, 80.61466667),
+  (9, 'Kalutara', 6.6, 79.95),
+  (10, 'Kalawana', 6.54, 80.38),
+  (11, 'Ratnapura', 6.72, 80.38),
+  (12, 'Kahawatta', 6.6, 80.58),
+  (13, 'Dodampe', 6.72712, 80.3274);
 
-INSERT INTO curw.unit (id, unit, type)
+INSERT INTO curw.unit (`id`, `unit`, `type`)
 VALUES
   (1, 'mm', 'Accumulative'),      # Precipitation, Evaporation
   (2, 'm3/s', 'Instantaneous'),   # Discharge

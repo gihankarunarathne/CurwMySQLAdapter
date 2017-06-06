@@ -162,3 +162,5 @@ class MySQLAdapterTest(unittest.TestCase) :
         }
         response = self.adapter.getEventIds(metaQuery)   
         self.assertEqual(len(response), 1)
+        timeseries = self.adapter.retrieveTimeseries(response)
+        self.assertEqual(len(timeseries[0]['timeseries']), 72)

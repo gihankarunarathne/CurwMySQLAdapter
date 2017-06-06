@@ -21,13 +21,13 @@ This package contains MySQL adapter that helps to store and retrieve multiple We
 
 ## Installation
 
-The last stable release is available on PyPI and can be installed with ``pip``::
+The last stable release is available on PyPI and can be installed with `pip`
 
-    $ `pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git`
+    $ pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git
 
 In order to update the package with latest changes, use `-U` or `--upgrade`
 
-    $ `pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git -U`
+    $ pip install git+https://github.com/gihankarunarathne/CurwMySQLAdapter.git -U
 
 ## Documentation
 

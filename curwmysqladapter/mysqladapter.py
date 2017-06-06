@@ -252,7 +252,6 @@ class mysqladapter :
                     sql += "WHERE "
                     cnt = 0
                     for key in metaQuery :
-                        print('key::', key)
                         if cnt :
                             sql += "AND "
                         sql += "`%s`=\"%s\" " % (key, metaQuery[key])
@@ -275,7 +274,24 @@ class mysqladapter :
 
     def retrieveTimeseries(self, eventIds=[]) :
         '''Get timeseries'''
+        try :
+            with self.connection.cursor() as cursor:
+                response = []
+                for event in eventIds :
+                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=%s"
+                    if isinstance(event, dict) :
+                        eventId = event.get('id')
+                    else :
+                        eventId = event
+                        event = {'id': eventId}
+                    cursor.execute(sql, (eventId))
+                    timeseries = cursor.fetchall()
+                    event['timeseries'] = [[time, value] for time, value in timeseries]
+                    response.append(event)
 
+                return response
+        except Exception as e :
+            traceback.print_exc()
 
     def close(self) :
         # disconnect from server

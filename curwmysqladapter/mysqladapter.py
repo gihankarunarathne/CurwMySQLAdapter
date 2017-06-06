@@ -276,6 +276,8 @@ class mysqladapter :
         '''Get timeseries'''
         try :
             with self.connection.cursor() as cursor:
+                if isinstance(eventIds, dict) :
+                    eventIds = self.getEventIds(eventIds)
                 response = []
                 for event in eventIds :
                     sql = "SELECT `time`,`value` FROM `data` WHERE `id`=%s"

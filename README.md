@@ -81,8 +81,12 @@ metaQuery = {
     'type': 'Forecast',
     'start_date': '2017-05-01 00:00:00'
 }
-response = self.adapter.getEventIds(metaQuery)
-timeseries = self.adapter.retrieveTimeseries(response)
+response = adapter.getEventIds(metaQuery)
+timeseries = adapter.retrieveTimeseries(response)
+print(len(timeseries[0]['timeseries']))
+
+# -- Or directly query timeseries
+timeseries = adapter.retrieveTimeseries(metaQuery)
 print(len(timeseries[0]['timeseries']))
 
 adapter.close()

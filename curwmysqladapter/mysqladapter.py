@@ -41,14 +41,14 @@ class mysqladapter :
         If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
         If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
-        :return str: sha256 hash value in hex format (length of 64 characters)
+        :return str: sha256 hash value in hex format (length of 64 characters). If does not exists, return None.
         '''
         eventId = None
         m = hashlib.sha256()
 
-        if 'start_date' in metaData :
+        if 'start_date' not in metaData :
             metaData['start_date'] = '1970-01-01 00:00:00'
-        if 'end_date' in metaData :
+        if 'end_date' not in metaData :
             metaData['end_date'] = '2050-01-01 00:00:00'
 
         m.update(json.dumps(metaData, sort_keys=True).encode("ascii"))
@@ -113,9 +113,9 @@ class mysqladapter :
 
                 sql = "INSERT INTO `run` (`id`, `name`, `start_date`, `end_date`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 
-                if 'start_date' in metaData :
+                if 'start_date' not in metaData :
                     metaData['start_date'] = '1970-01-01 00:00:00'
-                if 'end_date' in metaData :
+                if 'end_date' not in metaData :
                     metaData['end_date'] = '2050-01-01 00:00:00'
 
                 sqlValues = (
@@ -137,7 +137,7 @@ class mysqladapter :
 
         return eventId
 
-    def insertTimeseries(self, eventId, timeseries) :
+    def insertTimeseries(self, eventId, timeseries, upsert=False) :
         '''Insert timeseries into the db against given eventId
 
         :param string eventId: Hex Hash value that need to store timeseries against.
@@ -161,9 +161,12 @@ class mysqladapter :
 
                 newTimeseries = []
                 for t in timeseries :
-                    t[1] = round(float(t[1]), 3)
-                    t.insert(0, eventId)
-                    newTimeseries.append(t)
+                    if len(t) > 1 :
+                        t[1] = round(float(t[1]), 3)
+                        t.insert(0, eventId)
+                        newTimeseries.append(t)
+                    else :
+                        print('########')
 
                 # print(newTimeseries[:10])
                 rowCount = cursor.executemany(sql, (newTimeseries))

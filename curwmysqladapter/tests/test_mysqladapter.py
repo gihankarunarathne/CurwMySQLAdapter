@@ -149,11 +149,16 @@ class MySQLAdapterTest(unittest.TestCase) :
     def tearDown(self):
         print('tearDown')
 
-    def test_getEventId(self) :
-        print('1111')
-        self.assertTrue(True)
+    def test_getEventIdsWithEmptyQuery(self) :
+        response = self.adapter.getEventIds()
+        self.assertEqual(len(response), 12)
 
-
-    def test_retrieveTimeseries(self) :
-        print('2222')
-        self.assertTrue(True)
+    def test_getEventIdsForGivenDate(self) :
+        metaQuery = {
+            'station': 'Hanwella',
+            'variable': 'Precipitation',
+            'type': 'Forecast',
+            'start_date': '2017-05-30 00:00:00'
+        }
+        response = self.adapter.getEventIds(metaQuery)   
+        self.assertEqual(len(response), 1)

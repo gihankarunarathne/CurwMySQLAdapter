@@ -22,6 +22,21 @@ class mysqladapter :
 
         print ("Database version : %s " % data)
 
+        self.metaStruct = {
+            'station': '',
+            'variable': '',
+            'unit': '',
+            'type': '',
+            'source': '',
+            'name': '',
+            'start_date': '',
+            'end_date': ''
+        }
+
+    def getMetaStruct(self) :
+        '''Get the Meta Data Structure of hash value
+        '''
+        return self.metaStruct
 
     def getEventId(self, metaData) :
         '''Get the event id for given meta data
@@ -166,7 +181,7 @@ class mysqladapter :
                         t.insert(0, eventId)
                         newTimeseries.append(t)
                     else :
-                        print('########')
+                        print('Invalid timeseries data :', t)
 
                 # print(newTimeseries[:10])
                 rowCount = cursor.executemany(sql, (newTimeseries))
@@ -201,13 +216,66 @@ class mysqladapter :
         finally:
             return rowCount
 
-    def getEventIds(self) :
-        '''Get event ids set according to given meta data'''
-        print('getEventIds not implemented.')
+    def getEventIds(self, metaQuery={}, opts={}) :
+        '''Get event ids set according to given meta data
 
-    def retrieveTimeseries(self) :
+        :param dict metaQuery: Dict of Meta Query that use to search the hash
+        event ids. It may contain any of following keys s.t.
+        {
+            'station': 'Hanwella',
+            'variable': 'Precipitation',
+            'unit': 'mm',
+            'type': 'Forecast',
+            'source': 'WRF',
+            'name': 'Daily Forecast',
+            'start_date': '2017-05-01 00:00:00',
+            'end_date': '2017-05-03 23:00:00'
+        }
+
+        :return list: Return list of event objects which matches the given scenario
+        '''
+        try:
+            if not opts.get('limit') :
+                opts['limit'] = 100
+            if not opts.get('skip') :
+                opts['skip'] = 0
+
+            with self.connection.cursor() as cursor:
+                outOrder = []
+                sortedKeys = ['id'] + sorted(self.metaStruct.keys())
+                for key in sortedKeys :
+                    outOrder.append("`%s` as `%s`" % (key, key))
+                outOrder = ','.join(outOrder)
+
+                sql = "SELECT %s FROM `run_view` " % (outOrder)
+                if metaQuery :
+                    sql += "WHERE "
+                    cnt = 0
+                    for key in metaQuery :
+                        print('key::', key)
+                        if cnt :
+                            sql += "AND "
+                        sql += "`%s`=\"%s\" " % (key, metaQuery[key])
+                        cnt += 1
+
+                print('sql::', sql)
+                cursor.execute(sql)
+                events = cursor.fetchmany(opts.get('limit'))
+                response = []
+                for event in events :
+                    metaStruct = dict(self.metaStruct)
+                    for i, value in enumerate(sortedKeys) :
+                        metaStruct[sortedKeys[i]] = event[i]
+                    response.append(metaStruct)
+
+                return response
+
+        except Exception as e :
+            traceback.print_exc()
+
+    def retrieveTimeseries(self, eventIds=[]) :
         '''Get timeseries'''
-        print('retrieveTimeSeries not implemented.')
+
 
     def close(self) :
         # disconnect from server

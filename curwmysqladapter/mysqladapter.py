@@ -187,9 +187,13 @@ class mysqladapter :
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
-                sql = "DELETE FROM `data` WHERE `id`=%s"
+                sql = [
+                    "DELETE FROM `data` WHERE `id`=%s",
+                    "DELETE FROM `run` WHERE `id`=%s"
+                ]
 
-                rowCount = cursor.execute(sql, (eventId))
+                rowCount = cursor.execute(sql[0], (eventId))
+                cursor.execute(sql[1], (eventId))
                 self.connection.commit()
 
         except Exception as e :

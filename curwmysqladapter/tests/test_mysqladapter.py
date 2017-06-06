@@ -27,6 +27,7 @@ class MySQLAdapterTest(unittest.TestCase) :
                 MYSQL_PASSWORD = CONFIG['MYSQL_PASSWORD']
 
             self.adapter = mysqladapter(host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, db=MYSQL_DB)
+            self.eventIds = []
 
             # Store Rainfall Data
             stations = ['Colombo', 'Hanwella']
@@ -53,22 +54,23 @@ class MySQLAdapterTest(unittest.TestCase) :
                     print('-'.join(dateArr[1:]))
                     startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
                     endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    print(startDate, startDate.strftime("%Y-%m-%d %H:%M:%S"), endDate, endDate.strftime("%Y-%m-%d %H:%M:%S"))
+                    print(startDate, endDate)
                     stationMeta = dict(metaData)
                     stationMeta['station'] = station
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
                     stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
-                    print(stationMeta)
 
                     eventId = self.adapter.getEventId(stationMeta)
                     if eventId is None :
                         eventId = self.adapter.createEventId(stationMeta)
+                        self.eventIds.append(eventId)
                         print('HASH SHA256 created: ', eventId)
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
                         rowCount = self.adapter.insertTimeseries(eventId, timeseries)
                         print('%s rows inserted.' % rowCount)
                     else :
+                        self.eventIds.append(eventId)
                         print('HASH SHA256 exists: ', eventId)
                         deleteCount = self.adapter.deleteTimeseries(eventId)
                         print('%s rows deleted.' % deleteCount)
@@ -111,12 +113,14 @@ class MySQLAdapterTest(unittest.TestCase) :
                     eventId = self.adapter.getEventId(stationMeta)
                     if eventId is None :
                         eventId = self.adapter.createEventId(stationMeta)
+                        self.eventIds.append(eventId)
                         print('HASH SHA256 : ', eventId)
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
                         rowCount = self.adapter.insertTimeseries(eventId, timeseries)
                         print('%s rows inserted.' % rowCount)
                     else :
+                        self.eventIds.append(eventId)
                         print('HASH SHA256 : ', eventId)
                         deleteCount = self.adapter.deleteTimeseries(eventId)
                         print('%s rows deleted.' % deleteCount)
@@ -133,6 +137,8 @@ class MySQLAdapterTest(unittest.TestCase) :
     def tearDownClass(self):
         print('tearDownClass')
         try :
+            for id in self.eventIds :
+                self.adapter.deleteTimeseries(id)
             self.adapter.close()
         except Exception as e :
             traceback.print_exc()

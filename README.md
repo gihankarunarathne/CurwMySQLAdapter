@@ -75,6 +75,16 @@ else:
     rowCount = adapter.insertTimeseries(eventId, timeseries, True)
     print('%s rows inserted.' % rowCount)
 
+metaQuery = {
+    'station': 'Hanwella',
+    'variable': 'Discharge',
+    'type': 'Forecast',
+    'start_date': '2017-05-01 00:00:00'
+}
+response = self.adapter.getEventIds(metaQuery)
+timeseries = self.adapter.retrieveTimeseries(response)
+print(len(timeseries[0]['timeseries']))
+
 adapter.close()
 ```
 

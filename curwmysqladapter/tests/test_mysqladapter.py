@@ -165,6 +165,18 @@ class MySQLAdapterTest(unittest.TestCase) :
         timeseries = self.adapter.retrieveTimeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 72)
 
+    def test_getEventIdsForListOfStations(self) :
+        metaQuery = {
+            'station': ['Hanwella', 'Colombo'],
+            'variable': 'Precipitation',
+            'type': 'Forecast',
+            'start_date': '2017-05-30 00:00:00'
+        }
+        response = self.adapter.getEventIds(metaQuery)
+        self.assertEqual(len(response), 2)
+        timeseries = self.adapter.retrieveTimeseries(response)
+        self.assertEqual(len(timeseries[0]['timeseries']), 72)
+
     def test_retrieveTimeseriesForGivenDate(self) :
         metaQuery = {
             'station': 'Hanwella',

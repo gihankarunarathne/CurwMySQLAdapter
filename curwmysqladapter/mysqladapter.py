@@ -227,7 +227,7 @@ class mysqladapter :
         :param dict metaQuery: Dict of Meta Query that use to search the hash
         event ids. It may contain any of following keys s.t.
         {
-            'station': 'Hanwella',
+            'station': 'Hanwella', // Or a list ['Hanwella', 'Colombo']
             'variable': 'Precipitation',
             'unit': 'mm',
             'type': 'Forecast',
@@ -267,6 +267,8 @@ class mysqladapter :
                             sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
                         elif key is 'to' :
                             sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
+                        elif key is 'station' and isinstance(metaQuery[key], list) :
+                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in metaQuery[key]) )
                         else :
                             sql += "`%s`=\"%s\" " % (key, metaQuery[key])
                         cnt += 1

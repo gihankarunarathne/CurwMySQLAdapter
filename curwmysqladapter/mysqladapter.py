@@ -229,7 +229,10 @@ class mysqladapter :
             'source': 'WRF',
             'name': 'Daily Forecast',
             'start_date': '2017-05-01 00:00:00',
-            'end_date': '2017-05-03 23:00:00'
+            'end_date': '2017-05-03 23:00:00',
+
+            'from': '2017-05-01 00:00:00',
+            'to': '2017-05-06 23:00:00'
         }
 
         :return list: Return list of event objects which matches the given scenario
@@ -254,7 +257,13 @@ class mysqladapter :
                     for key in metaQuery :
                         if cnt :
                             sql += "AND "
-                        sql += "`%s`=\"%s\" " % (key, metaQuery[key])
+
+                        if key is 'from' :
+                            sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
+                        elif key is 'to' :
+                            sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
+                        else :
+                            sql += "`%s`=\"%s\" " % (key, metaQuery[key])
                         cnt += 1
 
                 print('sql::', sql)

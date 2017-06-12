@@ -273,7 +273,28 @@ class mysqladapter :
             traceback.print_exc()
 
     def retrieveTimeseries(self, eventIds=[]) :
-        '''Get timeseries'''
+        '''Get timeseries
+
+        :param (dict | list) metaQuery: If Meta Query is a Dict, then it'll use to search the hash
+        event ids. It may contain any of following keys s.t.
+        {
+            'station': 'Hanwella',
+            'variable': 'Precipitation',
+            'unit': 'mm',
+            'type': 'Forecast',
+            'source': 'WRF',
+            'name': 'Daily Forecast',
+            'start_date': '2017-05-01 00:00:00',
+            'end_date': '2017-05-03 23:00:00'
+        }
+        If the Meta Query is a List, then those will use to retrieve the timeseries. 
+        List may have following struture s.t.
+            ['eventId1', 'eventId2', ...] // List of strings
+        Or
+            [{id: 'eventId1'}, {id: 'eventId2'}, ...] // List of Objects
+
+        :return list: Return list of objects with the timeseries data for given matching events
+        '''
         try :
             with self.connection.cursor() as cursor:
                 if isinstance(eventIds, dict) :

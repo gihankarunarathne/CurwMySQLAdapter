@@ -188,4 +188,13 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(len(timeseries[0]['timeseries']), 72)
         self.assertEqual(len(timeseries), 3)
 
-
+    def test_getStations(self) :
+        query = {
+            'latitude_lower': '6.83564',
+            'longitude_lower': '80.0817',
+            'latitude_upper': '7.18517',
+            'longitude_upper': '80.6147'
+        }
+        stations = self.adapter.getStations(query)
+        self.assertEqual(len(stations), 5)
+        self.assertTrue('name' in stations[0])

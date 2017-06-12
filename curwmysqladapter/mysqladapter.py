@@ -32,6 +32,11 @@ class mysqladapter :
             'start_date': '',
             'end_date': ''
         }
+        self.stationStruct = {
+            'name': '',
+            'latitude': '',
+            'longitude': ''
+        }
 
     def getMetaStruct(self) :
         '''Get the Meta Data Structure of hash value
@@ -294,7 +299,7 @@ class mysqladapter :
             'source': 'WRF',
             'name': 'Daily Forecast',
             'start_date': '2017-05-01 00:00:00',
-            'end_date': '2017-05-03 23:00:00'
+            'end_date': '2017-05-03 23:00:00',
         }
         If the Meta Query is a List, then those will use to retrieve the timeseries. 
         List may have following struture s.t.
@@ -320,6 +325,61 @@ class mysqladapter :
                     timeseries = cursor.fetchall()
                     event['timeseries'] = [[time, value] for time, value in timeseries]
                     response.append(event)
+
+                return response
+        except Exception as e :
+            traceback.print_exc()
+
+    def getStations(self, query={}) :
+        '''Get stations
+        
+        :param dict query: Query for retrieve stations. It may contain any of following keys s.t.
+        {
+            latitude_lower: '',
+            longitude_lower: '',
+            latitude_upper: '',
+            longitude_upper: '',
+        }
+        If the latitude and longitude of a particular area is provided,
+        it'll look into all the stations which reside inside that area.
+
+        :return list: Return list of objects with the stations data which resign in given area.
+        '''
+        try :
+            with self.connection.cursor() as cursor:
+                outOrder = []
+                sortedKeys = sorted(self.stationStruct.keys())
+                for key in sortedKeys :
+                    outOrder.append("`%s` as `%s`" % (key, key))
+                outOrder = ','.join(outOrder)
+
+                sql = "SELECT %s FROM `station` " % (outOrder)
+                if query :
+                    sql += "WHERE "
+                    cnt = 0
+                    for key in query :
+                        if cnt :
+                            sql += "AND "
+
+                        if key is 'latitude_lower' :
+                            sql += "`%s`>=\"%s\" " % ('latitude', query[key])
+                        elif key is 'longitude_lower' :
+                            sql += "`%s`>=\"%s\" " % ('longitude', query[key])
+                        elif key is 'latitude_upper' :
+                            sql += "`%s`<=\"%s\" " % ('latitude', query[key])
+                        elif key is 'longitude_upper' :
+                            sql += "`%s`<=\"%s\" " % ('longitude', query[key])
+                        cnt += 1
+
+                print('sql::', sql)
+                cursor.execute(sql)
+                stations = cursor.fetchall()
+                response = []
+                for station in stations :
+                    stationStruct = dict(self.stationStruct)
+                    for i, value in enumerate(sortedKeys) :
+                        stationStruct[sortedKeys[i]] = station[i]
+                    response.append(stationStruct)
 
                 return response
         except Exception as e :

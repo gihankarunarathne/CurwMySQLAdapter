@@ -86,7 +86,7 @@ CREATE TABLE `curw`.`data` (
   CONSTRAINT `id`
     FOREIGN KEY (`id`)
     REFERENCES `curw`.`run` (`id`)
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE CASCADE
 );
 

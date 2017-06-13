@@ -208,12 +208,15 @@ class mysqladapter :
         try:
             with self.connection.cursor() as cursor:
                 sql = [
-                    "DELETE FROM `data` WHERE `id`=%s",
-                    "DELETE FROM `run` WHERE `id`=%s"
+                    "DELETE FROM `run` WHERE `id`=%s",
                 ]
+                ''' "DELETE FROM `data` WHERE `id`=%s"
+                NOTE: Since `data` table `id` foriegn key contain on `ON DELETE CASCADE`,
+                when deleting entries on `run` table will automatically delete the records
+                in `data` table
+                '''
 
                 rowCount = cursor.execute(sql[0], (eventId))
-                cursor.execute(sql[1], (eventId))
                 self.connection.commit()
 
         except Exception as e :

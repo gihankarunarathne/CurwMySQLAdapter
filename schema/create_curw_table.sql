@@ -119,9 +119,37 @@ INSERT INTO curw.variable VALUES
 
 INSERT INTO curw.type VALUES 
   (1, 'Observed'),
-  (2, 'Forecast');
+  (2, 'Forecast-14-d-before'),
+  (3, 'Forecast-13-d-before'),
+  (4, 'Forecast-12-d-before'),
+  (5, 'Forecast-11-d-before'),
+  (6, 'Forecast-10-d-before'),
+  (7, 'Forecast-9-d-before'),
+  (8, 'Forecast-8-d-before'),
+  (9, 'Forecast-7-d-before'),
+  (10, 'Forecast-6-d-before'),
+  (11, 'Forecast-5-d-before'),
+  (12, 'Forecast-4-d-before'),
+  (13, 'Forecast-3-d-before'),
+  (14, 'Forecast-2-d-before'),
+  (15, 'Forecast-1-d-before'),
+  (16, 'Forecast-0-d'),
+  (17, 'Forecast-1-d-after'),
+  (18, 'Forecast-2-d-after'),
+  (19, 'Forecast-3-d-after'),
+  (20, 'Forecast-4-d-after'),
+  (21, 'Forecast-5-d-after'),
+  (22, 'Forecast-6-d-after'),
+  (23, 'Forecast-7-d-after'),
+  (24, 'Forecast-8-d-after'),
+  (25, 'Forecast-9-d-after'),
+  (26, 'Forecast-10-d-after'),
+  (27, 'Forecast-11-d-after'),
+  (28, 'Forecast-12-d-after'),
+  (29, 'Forecast-13-d-after'),
+  (30, 'Forecast-14-d-after');
 
-INSERT INTO source VALUES 
+INSERT INTO curw.source VALUES 
   (1, 'HEC-HMS'),
   (2, 'SHER'),
   (3, 'WRF'),

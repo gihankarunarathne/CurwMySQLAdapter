@@ -181,54 +181,43 @@ class MySQLAdapterTest(unittest.TestCase) :
 
     def test_getEventIdsWithEmptyQuery(self) :
         response = self.adapter.getEventIds()
-        self.assertEqual(len(response), 12)
+        self.assertEqual(len(response), 15)
 
-    def test_getEventIdsForGivenDate(self) :
+    def test_getEventIdsForGivenStation(self) :
         metaQuery = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
-            'type': 'Forecast',
-            'start_date': '2017-05-30 00:00:00'
+            'type': 'Forecast-0-d',
         }
         response = self.adapter.getEventIds(metaQuery)   
         self.assertEqual(len(response), 1)
         timeseries = self.adapter.retrieveTimeseries(response)
-        self.assertEqual(len(timeseries[0]['timeseries']), 72)
+        self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_getEventIdsForListOfStations(self) :
         metaQuery = {
             'station': ['Hanwella', 'Colombo'],
             'variable': 'Precipitation',
-            'type': 'Forecast',
-            'start_date': '2017-05-30 00:00:00'
+            'type': 'Forecast-0-d',
         }
         response = self.adapter.getEventIds(metaQuery)
         self.assertEqual(len(response), 2)
         timeseries = self.adapter.retrieveTimeseries(response)
-        self.assertEqual(len(timeseries[0]['timeseries']), 72)
-
-    def test_retrieveTimeseriesForGivenDate(self) :
-        metaQuery = {
-            'station': 'Hanwella',
-            'variable': 'Precipitation',
-            'type': 'Forecast',
-            'start_date': '2017-05-30 00:00:00'
-        }
-        timeseries = self.adapter.retrieveTimeseries(metaQuery)
-        self.assertEqual(len(timeseries[0]['timeseries']), 72)
-        self.assertEqual(len(timeseries), 1)
+        self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_retrieveTimeseriesFromToDate(self) :
         metaQuery = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
-            'type': 'Forecast',
-            'from': '2017-05-30 00:00:00',
+            'type': 'Forecast-0-d'
+        }
+        opts = {
+            'from': '2017-05-31 00:00:00',
             'to': '2017-06-01 23:00:00'
         }
-        timeseries = self.adapter.retrieveTimeseries(metaQuery)
-        self.assertEqual(len(timeseries[0]['timeseries']), 72)
-        self.assertEqual(len(timeseries), 3)
+        timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
+        self.assertEqual(len(timeseries[0]['timeseries']), 48)
+        self.assertEqual(len(timeseries), 1)
 
     def test_getStations(self) :
         query = {

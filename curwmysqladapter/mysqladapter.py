@@ -256,10 +256,13 @@ class mysqladapter :
             'source': 'WRF',
             'name': 'Daily Forecast',
             'start_date': '2017-05-01 00:00:00',
-            'end_date': '2017-05-03 23:00:00',
+            'end_date': '2017-05-03 23:00:00'
+        }
 
-            'from': '2017-05-01 00:00:00',
-            'to': '2017-05-06 23:00:00'
+        :param dict opts: Dict of options for searching and handling data s.t.
+        {
+            'limit': 100,
+            'skip': 0
         }
 
         :return list: Return list of event objects which matches the given scenario
@@ -272,7 +275,7 @@ class mysqladapter :
 
             with self.connection.cursor() as cursor:
                 outOrder = []
-                sortedKeys = ['id'] + sorted(self.metaStruct.keys())
+                sortedKeys = ['id'] + self.metaStructKeys
                 for key in sortedKeys :
                     outOrder.append("`%s` as `%s`" % (key, key))
                 outOrder = ','.join(outOrder)
@@ -295,7 +298,7 @@ class mysqladapter :
                             sql += "`%s`=\"%s\" " % (key, metaQuery[key])
                         cnt += 1
 
-                print('sql::', sql)
+                print('sql (getEventIds)::', sql)
                 cursor.execute(sql)
                 events = cursor.fetchmany(opts.get('limit'))
                 response = []
@@ -310,7 +313,7 @@ class mysqladapter :
         except Exception as e :
             traceback.print_exc()
 
-    def retrieveTimeseries(self, eventIds=[]) :
+    def retrieveTimeseries(self, metaQuery=[], opts={}) :
         '''Get timeseries
 
         :param (dict | list) metaQuery: If Meta Query is a Dict, then it'll use to search the hash
@@ -331,21 +334,46 @@ class mysqladapter :
         Or
             [{id: 'eventId1'}, {id: 'eventId2'}, ...] // List of Objects
 
+        :param dict opts: Dict of options for searching and handling data s.t.
+        {
+            'limit': 100,
+            'skip': 0,
+            'from': '2017-05-01 00:00:00',
+            'to': '2017-05-06 23:00:00'
+        }
+
         :return list: Return list of objects with the timeseries data for given matching events
         '''
         try :
+            if not opts.get('limit') :
+                opts['limit'] = 100
+            if not opts.get('skip') :
+                opts['skip'] = 0
+
             with self.connection.cursor() as cursor:
-                if isinstance(eventIds, dict) :
-                    eventIds = self.getEventIds(eventIds)
+                if isinstance(metaQuery, dict) :
+                    eventIds = self.getEventIds(metaQuery)
+                else :
+                    eventIds = list(metaQuery)
+
+                print('eventIds ::', eventIds)
                 response = []
                 for event in eventIds :
-                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=%s"
                     if isinstance(event, dict) :
                         eventId = event.get('id')
                     else :
                         eventId = event
                         event = {'id': eventId}
-                    cursor.execute(sql, (eventId))
+
+                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=\"%s\" " % (eventId)
+
+                    if opts.get('from') :
+                            sql += "AND `%s`>=\"%s\" " % ('time', opts['from'])
+                    if opts.get('to') :
+                        sql += "AND `%s`<=\"%s\" " % ('time', opts['to'])
+
+                    print('sql (retrieveTimeseries)::', sql)
+                    cursor.execute(sql)
                     timeseries = cursor.fetchall()
                     event['timeseries'] = [[time, value] for time, value in timeseries]
                     response.append(event)
@@ -395,7 +423,7 @@ class mysqladapter :
                             sql += "`%s`<=\"%s\" " % ('longitude', query[key])
                         cnt += 1
 
-                print('sql::', sql)
+                print('sql (getStations)::', sql)
                 cursor.execute(sql)
                 stations = cursor.fetchall()
                 response = []

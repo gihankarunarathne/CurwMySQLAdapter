@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import pymysql.cursors, hashlib, collections, json, traceback
+import pymysql.cursors, hashlib, collections, json, traceback, copy
 
 class mysqladapter :
     def __init__(self, host="localhost", user="root", password="", db="curw") :
@@ -194,8 +194,12 @@ class mysqladapter :
                 if upsert :
                     sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
+                # Refer to performance in copy list : https://stackoverflow.com/a/2612990/1461060
+                timeseriesCopy = []
+                for item in timeseries: timeseriesCopy.append(item[:])
+
                 newTimeseries = []
-                for t in timeseries :
+                for t in [i for i in timeseriesCopy] :
                     if len(t) > 1 :
                         t[1] = round(float(t[1]), 3)
                         t.insert(0, eventId)

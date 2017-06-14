@@ -17,6 +17,8 @@ class MySQLAdapterTest(unittest.TestCase) :
             MYSQL_DB="curw"
             MYSQL_PASSWORD=""
 
+            DAY_INTERVAL = 24
+
             if 'MYSQL_HOST' in CONFIG :
                 MYSQL_HOST = CONFIG['MYSQL_HOST']
             if 'MYSQL_USER' in CONFIG :
@@ -30,7 +32,8 @@ class MySQLAdapterTest(unittest.TestCase) :
             self.eventIds = []
 
             # Store Rainfall Data
-            stations = ['Colombo', 'Hanwella']
+            stations = ['Colombo', 'Hanwella', 'Norwood']
+            types = ['Forecast-0-d', 'Forecast-1-d-after', 'Forecast-2-d-after']
             metaData = {
                 'station': 'Hanwella',
                 'variable': 'Precipitation',
@@ -60,29 +63,33 @@ class MySQLAdapterTest(unittest.TestCase) :
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
                     stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
 
-                    eventId = self.adapter.getEventId(stationMeta)
-                    if eventId is None :
-                        eventId = self.adapter.createEventId(stationMeta)
-                        self.eventIds.append(eventId)
-                        print('HASH SHA256 created: ', eventId)
+                    for i in range(0, 3) :
+                        stationMeta['type'] = types[i]
+                        eventId = self.adapter.getEventId(stationMeta)
+                        if eventId is None :
+                            eventId = self.adapter.createEventId(stationMeta)
+                            print('HASH SHA256 created: ', eventId)
+                        else :
+                            print('HASH SHA256 exists: ', eventId)
+                        
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries)
-                        print('%s rows inserted.' % rowCount)
-                    else :
-                        print('HASH SHA256 exists: ', eventId)
-                        deleteCount = self.adapter.deleteTimeseries(eventId)
-                        print('%s rows deleted.' % deleteCount)
-                        # for l in timeseries[:3] + timeseries[-2:] :
-                        #     print(l)
-                        eventId = self.adapter.createEventId(stationMeta)
-                        self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries)
+                        if eventId not in self.eventIds :
+                            self.eventIds.append(eventId)
+                        rowCount = self.adapter.insertTimeseries(eventId, timeseries[i*DAY_INTERVAL:(i+1)*DAY_INTERVAL], True)
                         print('%s rows inserted.' % rowCount)
 
 
             # Store Discharge Data
             stations = ['Hanwella']
+            types = [
+                'Forecast-0-d', 
+                'Forecast-1-d-after', 
+                'Forecast-2-d-after', 
+                'Forecast-3-d-after',
+                'Forecast-4-d-after',
+                'Forecast-5-d-after'
+            ]
             metaData = {
                 'station': 'Hanwella',
                 'variable': 'Discharge',
@@ -111,24 +118,20 @@ class MySQLAdapterTest(unittest.TestCase) :
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
                     stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
 
-                    eventId = self.adapter.getEventId(stationMeta)
-                    if eventId is None :
-                        eventId = self.adapter.createEventId(stationMeta)
-                        self.eventIds.append(eventId)
-                        print('HASH SHA256 : ', eventId)
+                    for i in range(0, 6) :
+                        stationMeta['type'] = types[i]
+                        eventId = self.adapter.getEventId(stationMeta)
+                        if eventId is None :
+                            eventId = self.adapter.createEventId(stationMeta)
+                            print('HASH SHA256 created: ', eventId)
+                        else :
+                            print('HASH SHA256 exists: ', eventId)
+                        
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries)
-                        print('%s rows inserted.' % rowCount)
-                    else :
-                        print('HASH SHA256 : ', eventId)
-                        deleteCount = self.adapter.deleteTimeseries(eventId)
-                        print('%s rows deleted.' % deleteCount)
-                        # for l in timeseries[:3] + timeseries[-2:] :
-                        #     print(l)
-                        eventId = self.adapter.createEventId(stationMeta)
-                        self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries)
+                        if eventId not in self.eventIds :
+                            self.eventIds.append(eventId)
+                        rowCount = self.adapter.insertTimeseries(eventId, timeseries[i*DAY_INTERVAL:(i+1)*DAY_INTERVAL], True)
                         print('%s rows inserted.' % rowCount)
 
 

@@ -58,9 +58,9 @@ metaData = {
     'station': 'Hanwella',
     'variable': 'Discharge',
     'unit': 'm3/s',
-    'type': 'Forecast',
+    'type': 'Forecast-0-d',
     'source': 'HEC-HMS',
-    'name': 'HEC-HMS 1st',
+    'name': 'HEC-HMS Continuous',
     'start_date': '2017-05-01 00:00:00',
     'end_date': '2017-05-03 23:00:00'
 }
@@ -95,6 +95,10 @@ adapter.close()
 ## Testing
 
 Run test cases with `python setup.py test`
+
+- Run test cases again `nosetests`
+- Run test cases in verbose mode `nosetests -s`
+- Run a single test case from root dir `nosetests curwmysqladapter/tests/test_mysqladapter.py:MySQLAdapterTest.test_getStations -s`
 
 ## Resources
 

@@ -28,10 +28,9 @@ class mysqladapter :
             'unit': '',
             'type': '',
             'source': '',
-            'name': '',
-            'start_date': '',
-            'end_date': ''
+            'name': ''
         }
+        self.metaStructKeys = sorted(self.metaStruct.keys())
         self.stationStruct = {
             'name': '',
             'latitude': '',
@@ -40,23 +39,30 @@ class mysqladapter :
 
     def getMetaStruct(self) :
         '''Get the Meta Data Structure of hash value
+        NOTE: start_date and end_date is not using for hashing
         '''
         return self.metaStruct
 
+    def getStationStruct(self) :
+        '''Get the Station Data Structure
+        '''
+        return self.stationStruct
+
     def getEventId(self, metaData) :
         '''Get the event id for given meta data
+        NOTE: Only 'station', 'variable', 'unit', 'type', 'source', 'name' fields use for generate hash value
 
         :param dict metaData: Dict of Meta Data that use to create the hash
-        Meta Data should contains all of following keys s.t.
+        Meta Data should contains all required following keys s.t.
         {
             'station': 'Hanwella',
             'variable': 'Discharge',
             'unit': 'm3/s',
             'type': 'Forecast',
             'source': 'HEC-HMS',
-            'name': 'HEC-HMS 1st',
-            'start_date': '2017-05-01 00:00:00',
-            'end_date': '2017-05-03 23:00:00'
+            'name': 'Cloud Continuous',
+            'start_date': '2017-05-01 00:00:00', // Optional: Start Time of timeseries
+            'end_date': '2017-05-03 23:00:00'    // Optional: End Time of timeseries
         }
         If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
         If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
@@ -71,7 +77,12 @@ class mysqladapter :
         if 'end_date' not in metaData :
             metaData['end_date'] = '2050-01-01 00:00:00'
 
-        m.update(json.dumps(metaData, sort_keys=True).encode("ascii"))
+        hashData = dict(self.metaStruct)
+        for i, value in enumerate(self.metaStructKeys) :
+            hashData[value] = metaData[value]
+        print('hash Data ', hashData)
+
+        m.update(json.dumps(hashData, sort_keys=True).encode("ascii"))
         possibleId = m.hexdigest()
         try:
             with self.connection.cursor() as cursor:
@@ -107,8 +118,12 @@ class mysqladapter :
 
         :return str: sha256 hash value in hex format (length of 64 characters)
         '''
+        hashData = dict(self.metaStruct)
+        for i, value in enumerate(self.metaStructKeys) :
+            hashData[value] = metaData[value]
+
         m = hashlib.sha256()
-        m.update(json.dumps(metaData, sort_keys=True).encode("ascii"))
+        m.update(json.dumps(hashData, sort_keys=True).encode("ascii"))
         eventId = m.hexdigest()
         try:
             with self.connection.cursor() as cursor:

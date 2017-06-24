@@ -288,11 +288,13 @@ class mysqladapter :
                         if cnt :
                             sql += "AND "
 
-                        if key is 'from' :
-                            sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
-                        elif key is 'to' :
-                            sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
-                        elif key is 'station' and isinstance(metaQuery[key], list) :
+                        # TODO: Need to update start and end date of timeseries
+                        # if key is 'from' :
+                        #     sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
+                        # elif key is 'to' :
+                        #     sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
+                        # elif key is 'station' and isinstance(metaQuery[key], list) :
+                        if key is 'station' and isinstance(metaQuery[key], list) :
                             sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in metaQuery[key]) )
                         else :
                             sql += "`%s`=\"%s\" " % (key, metaQuery[key])

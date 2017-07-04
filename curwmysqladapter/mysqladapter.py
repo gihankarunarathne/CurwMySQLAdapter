@@ -211,6 +211,10 @@ class mysqladapter :
                 rowCount = cursor.executemany(sql, (newTimeseries))
                 self.connection.commit()
 
+                sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), `end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
+                cursor.execute(sql, (eventId, eventId, eventId))
+                self.connection.commit()
+
         except Exception as e :
             traceback.print_exc()
         finally:
@@ -304,6 +308,7 @@ class mysqladapter :
                 print('sql (getEventIds)::', sql)
                 cursor.execute(sql)
                 events = cursor.fetchmany(opts.get('limit'))
+                print('events::', events)
                 response = []
                 for event in events :
                     metaStruct = dict(self.metaStruct)

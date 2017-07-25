@@ -390,6 +390,26 @@ class mysqladapter :
         except Exception as e :
             traceback.print_exc()
 
+    def createStations(self, stations=[]) :
+        '''Insert stations into the db
+
+        :param list   stations: List of stations in the form of list [<STATION_ID>, <STATION_NAME>, <LATITUDE>, <LONGITUDE>]
+        E.g. [ [], [], ... ]
+        '''
+        rowCount = 0
+        try:
+            with self.connection.cursor() as cursor:
+                sql = "INSERT INTO `station` (`id`, `name`, `latitude`, `longitude`) VALUES (%s, %s, %s, %s)"
+
+                # print(stations[:10])
+                rowCount = cursor.executemany(sql, (stations))
+                self.connection.commit()
+
+        except Exception as e :
+            traceback.print_exc()
+        finally:
+            return rowCount
+
     def getStations(self, query={}) :
         '''Get stations
         

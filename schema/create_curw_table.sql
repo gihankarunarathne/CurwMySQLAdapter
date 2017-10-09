@@ -27,10 +27,13 @@ CREATE TABLE `curw`.`source` (
 
 CREATE TABLE `curw`.`station` (
   `id` INT NOT NULL,
+  `stationId` VARCHAR(45) NOT NULL,
   `name` VARCHAR(45) NOT NULL,
   `latitude` DOUBLE NOT NULL,
   `longitude` DOUBLE NOT NULL,
-  PRIMARY KEY (`id`),
+  `resolution` INT NOT NULL DEFAULT 0 COMMENT 'Resolution in meters. Default value is 0, and it means point data.',
+  PRIMARY KEY (`id`, `stationId`),
+  UNIQUE INDEX `stationId_UNIQUE` (`stationId` ASC),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC)
 );
 

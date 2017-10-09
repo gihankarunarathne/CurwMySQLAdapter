@@ -17,22 +17,34 @@ SELECT '\n';
 SELECT @abc := (SELECT 1  FROM mysql.user WHERE user = 'curw');
 IF abc = 1 THEN
     # Create a user and grant permissions
-    CREATE USER 'curw'@'localhost' IDENTIFIED BY 'curw@123';
+    CREATE USER 'curw'@'localhost' IDENTIFIED BY '<PASSWORD>';
     GRANT INSERT ON curw.* TO 'curw'@'localhost';
     GRANT SELECT ON curw.* TO 'curw'@'localhost';
     GRANT UPDATE ON curw.* TO 'curw'@'localhost';
     # GRANT DELETE ON curw.* TO 'curw'@'localhost';
     # REVOKE DELETE ON curw.* FROM 'curw'@'localhost';
 
-    CREATE USER 'curw'@'10.138.0.3' IDENTIFIED BY 'curw@123';
+    # Crete User for WRF and grant permissions
+    CREATE USER 'curw'@'10.138.0.3' IDENTIFIED BY '<PASSWORD>';
     GRANT INSERT ON curw.* TO 'curw'@'10.138.0.3';
     GRANT SELECT ON curw.* TO 'curw'@'10.138.0.3';
     GRANT UPDATE ON curw.* TO 'curw'@'10.138.0.3';
     # GRANT DELETE ON curw.* TO 'curw'@'10.138.0.3';
     # REVOKE DELETE ON curw.* FROM 'curw'@'10.138.0.3';
+
+    # Crete User for Windows Instance and grant permissions
+    CREATE USER 'curw'@'10.138.0.4' IDENTIFIED BY '<PASSWORD>';
+    GRANT INSERT ON curw.* TO 'curw'@'10.138.0.4';
+    GRANT SELECT ON curw.* TO 'curw'@'10.138.0.4';
+    GRANT UPDATE ON curw.* TO 'curw'@'10.138.0.4';
+    # GRANT DELETE ON curw.* TO 'curw'@'10.138.0.4';
+    # REVOKE DELETE ON curw.* FROM 'curw'@'10.138.0.4';
 END IF;
 /*
  * Create New Database if not exists
  */
+# Store CUrW chunk timeseries data. E.g. 'Forecast-0-d', 'Forecast-1-d' etc
 CREATE DATABASE IF NOT EXISTS curw;
+# Store CUrW continous timeseries data. E.g. 'Observed', 'Forecast'
+CREATE DATABASE IF NOT EXISTS curwts;
 

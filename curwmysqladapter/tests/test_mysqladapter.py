@@ -229,3 +229,29 @@ class MySQLAdapterTest(unittest.TestCase) :
         stations = self.adapter.getStations(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
+
+    # Scenario: All observed rainfall data series within a geographic region
+    # (lower-left and upper-right coords provided) from date1 to date2
+    def test_retrieveAllTimeseriesInAreaForGivenTime(self) :
+        query = {
+            'latitude_lower': '6.83564',
+            'longitude_lower': '80.0817',
+            'latitude_upper': '7.18517',
+            'longitude_upper': '80.6147'
+        }
+        stations = self.adapter.getStations(query)
+        self.assertEqual(len(stations), 5)
+        self.assertTrue('name' in stations[0])
+        stationList = list(map((lambda x: x['name']), stations))
+
+        metaQuery = {
+            'station': stationList,
+            'variable': 'Precipitation',
+        }
+        opts = {
+            'from': '2017-05-31 00:00:00',
+            'to': '2017-06-01 23:00:00'
+        }
+        timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
+        self.assertEqual(len(timeseries[0]['timeseries']), 48)
+        self.assertEqual(len(timeseries), 1)

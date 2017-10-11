@@ -60,22 +60,13 @@ class mysqladapter :
             'unit': 'm3/s',
             'type': 'Forecast',
             'source': 'HEC-HMS',
-            'name': 'Cloud Continuous',
-            'start_date': '2017-05-01 00:00:00', // Optional: Start Time of timeseries
-            'end_date': '2017-05-03 23:00:00'    // Optional: End Time of timeseries
+            'name': 'Cloud Continuous'
         }
-        If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
-        If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
         :return str: sha256 hash value in hex format (length of 64 characters). If does not exists, return None.
         '''
         eventId = None
         m = hashlib.sha256()
-
-        if 'start_date' not in metaData :
-            metaData['start_date'] = '1970-01-01 00:00:00'
-        if 'end_date' not in metaData :
-            metaData['end_date'] = '2050-01-01 00:00:00'
 
         hashData = dict(self.metaStruct)
         for i, value in enumerate(self.metaStructKeys) :
@@ -109,11 +100,8 @@ class mysqladapter :
             'unit': 'mm',
             'type': 'Forecast',
             'source': 'WRF',
-            'name': 'WRF 1st',
-            'start_date': '2017-05-01 00:00:00',
-            'end_date': '2017-05-03 23:00:00'
+            'name': 'WRF 1st'
         }
-        If start_date is not set, use default date as "01 Jan 1970 00:00:00 GMT"
         If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
         :return str: sha256 hash value in hex format (length of 64 characters)
@@ -147,17 +135,10 @@ class mysqladapter :
                 sourceId = cursor.fetchone()[0]
 
                 sql = "INSERT INTO `run` (`id`, `name`, `start_date`, `end_date`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                
-                if 'start_date' not in metaData :
-                    metaData['start_date'] = '1970-01-01 00:00:00'
-                if 'end_date' not in metaData :
-                    metaData['end_date'] = '2050-01-01 00:00:00'
 
                 sqlValues = (
                     eventId,
                     metaData['name'],
-                    metaData['start_date'],
-                    metaData['end_date'],
                     stationId,
                     variableId,
                     unitId,

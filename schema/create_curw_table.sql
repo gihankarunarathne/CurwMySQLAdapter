@@ -40,8 +40,8 @@ CREATE TABLE `curw`.`station` (
 CREATE TABLE `curw`.`run` (
   `id` VARCHAR(64) NOT NULL,
   `name` VARCHAR(255) NOT NULL,
-  `start_date` DATETIME NOT NULL,
-  `end_date` DATETIME NOT NULL,
+  `start_date` DATETIME DEFAULT NULL,
+  `end_date` DATETIME DEFAULT NULL,
   `station` INT NOT NULL,
   `variable` INT NOT NULL,
   `unit` INT NOT NULL,
@@ -93,8 +93,7 @@ CREATE TABLE `curw`.`data` (
     ON UPDATE CASCADE
 );
 
-use curw;
-CREATE VIEW `run_view` AS
+CREATE VIEW `curw`.`run_view` AS
   SELECT 
     `run`.`id` AS `id`,
     `run`.`name` AS `name`,

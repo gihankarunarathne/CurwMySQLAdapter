@@ -242,6 +242,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         stations = self.adapter.getStations(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
+        stations = [{'name': 'Hanwella'}, {'name': 'Colombo'}]
         stationList = list(map((lambda x: x['name']), stations))
 
         metaQuery = {
@@ -254,4 +255,4 @@ class MySQLAdapterTest(unittest.TestCase) :
         }
         timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
-        self.assertEqual(len(timeseries), 1)
+        self.assertEqual(len(timeseries), 6)

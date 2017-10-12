@@ -134,7 +134,7 @@ class mysqladapter :
                 cursor.execute(sql[4], (metaData['source']))
                 sourceId = cursor.fetchone()[0]
 
-                sql = "INSERT INTO `run` (`id`, `name`, `start_date`, `end_date`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                sql = "INSERT INTO `run` (`id`, `name`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 sqlValues = (
                     eventId,

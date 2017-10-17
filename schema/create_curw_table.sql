@@ -14,13 +14,14 @@ CREATE TABLE `curw`.`type` (
 CREATE TABLE `curw`.`unit` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `unit` VARCHAR(10) NOT NULL,
-  `type` ENUM('Accumulative', 'Instantaneous') NOT NULL,
+  `type` ENUM('Accumulative', 'Instantaneous', 'Mean') NOT NULL,
   PRIMARY KEY (`id`)
 );
 
 CREATE TABLE `curw`.`source` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `source` VARCHAR(45) NOT NULL,
+  `parameters` JSON NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `source_UNIQUE` (`source` ASC)
 );
@@ -32,6 +33,7 @@ CREATE TABLE `curw`.`station` (
   `latitude` DOUBLE NOT NULL,
   `longitude` DOUBLE NOT NULL,
   `resolution` INT NOT NULL DEFAULT 0 COMMENT 'Resolution in meters. Default value is 0, and it means point data.',
+  `description` VARCHAR(255) NULL,
   PRIMARY KEY (`id`, `stationId`),
   UNIQUE INDEX `stationId_UNIQUE` (`stationId` ASC),
   UNIQUE INDEX `name_UNIQUE` (`name` ASC)
@@ -93,7 +95,9 @@ CREATE TABLE `curw`.`data` (
     ON UPDATE CASCADE
 );
 
-CREATE VIEW `curw`.`run_view` AS
+# Create Views
+use `curw`;
+CREATE VIEW `run_view` AS
   SELECT 
     `run`.`id` AS `id`,
     `run`.`name` AS `name`,

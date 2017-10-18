@@ -219,6 +219,22 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 1)
 
+    def test_createStation(self):
+        station = (110001, 'curw_test_station', 'Test Station', 7.111666667,  80.14983333, 0, "Testing Adapter")
+
+        rowCount = self.adapter.createStation(station)
+        self.assertEqual(rowCount, 1)
+        rowCount = self.adapter.deleteStation(station[0])
+        self.assertEqual(rowCount, 1)
+
+    def test_createStationWithList(self):
+        station = [110001, 'curw_test_station', 'Test Station', 7.111666667,  80.14983333, 0, "Testing Adapter"]
+
+        rowCount = self.adapter.createStation(station)
+        self.assertEqual(rowCount, 1)
+        rowCount = self.adapter.deleteStation(stationId=station[1])
+        self.assertEqual(rowCount, 1)
+
     def test_getStationByName(self):
         query = {
             'name': 'Hanwella'

@@ -187,7 +187,9 @@ class mysqladapter :
                 newTimeseries = []
                 for t in [i for i in timeseriesCopy] :
                     if len(t) > 1 :
+                        # Format value into 3 decimal palaces
                         t[1] = round(float(t[1]), 3)
+                        # Insert EventId in font of timestamp, value list
                         t.insert(0, eventId)
                         newTimeseries.append(t)
                     else :
@@ -376,20 +378,34 @@ class mysqladapter :
         except Exception as e :
             traceback.print_exc()
 
-    def createStations(self, stations=[]) :
-        '''Insert stations into the db
+    def createStation(self, station=[]) :
+        '''Insert stations into the database
 
-        :param list   stations: List of stations in the form of list [<STATION_ID>, <STATION_NAME>, <LATITUDE>, <LONGITUDE>]
-        E.g. [ [], [], ... ]
+         Station ids ranged as below;
+        - 1 xx xxx - CUrW (stationId: curw_<SOMETHING>)
+        - 2 xx xxx - Megapolis (stationId: megapolis_<SOMETHING>)
+        - 3 xx xxx - Government (stationId: gov_<SOMETHING>. May follow as gov_irr_<SOMETHING>)
+        - 4 xx xxx - Public (stationId: pub_<SOMETHING>)
+        - 8 xx xxx - Satellite (stationId: sat_<SOMETHING>)
+
+        Simulation models station ids ranged over 1’000’000 as below;
+        - 1 1xx xxx - WRF (stationId: wrf_<SOMETHING>)
+        - 1 2xx xxx - FLO2D (stationId: flo2d_<SOMETHING>)
+
+        :param list/tuple   station: Station details in the form of list s.t.
+        [<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
+        (<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>)
         '''
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
-                sql = "INSERT INTO `station` (`id`, `name`, `latitude`, `longitude`) VALUES (%s, %s, %s, %s)"
+                # TODO: station Id validation and fill out default values
+                sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-                # print(stations[:10])
-                rowCount = cursor.executemany(sql, (stations))
+                # print(station)
+                rowCount = cursor.execute(sql, station)
                 self.connection.commit()
+                # print('Created Station #', rowCount)
 
         except Exception as e :
             traceback.print_exc()
@@ -437,6 +453,34 @@ class mysqladapter :
 
         except Exception as e :
             traceback.print_exc()
+
+    def deleteStation(self, id=0, stationId=''):
+        '''Delete given station from the database
+
+        :param integer id: Station Id
+        :param string stationId: Station Id
+
+        :return int: Affected row count.
+        '''
+        rowCount = 0
+        try:
+            with self.connection.cursor() as cursor:
+                if id > 0 :
+                    sql = "DELETE FROM `station` WHERE `id`=%s"
+                    rowCount = cursor.execute(sql, (id))
+                    self.connection.commit()
+                elif stationId :
+                    sql = "DELETE FROM `station` WHERE `stationId`=%s"
+
+                    rowCount = cursor.execute(sql, (stationId))
+                    self.connection.commit()
+                else :
+                    print('Unable to find station')
+
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            return rowCount
 
     def getStations(self, query={}) :
         '''

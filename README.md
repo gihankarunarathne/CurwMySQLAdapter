@@ -99,7 +99,7 @@ Run test cases with `python setup.py test`
 - Run test cases again `nosetests`
 - Run test cases in verbose mode `nosetests -s`
 - Run a single test case from root dir 
-  `nosetests curwmysqladapter/tests/test_mysqladapter.py:MySQLAdapterTest.test_getStations -s`
+  `nosetests curwmysqladapter/tests/test_mysqladapter.py:MySQLAdapterTest.test_getStationsInArea -s`
 
 ## Resources
 

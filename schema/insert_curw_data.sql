@@ -46,13 +46,13 @@ INSERT INTO curw.type VALUES
   (31, 'Forecast-14-d-after');
 
 INSERT INTO curw.source VALUES 
-  (1, 'HEC-HMS'),
-  (2, 'SHER'),
-  (3, 'WRF'),
-  (4, 'FLO2D'),
-  (5, 'EPM'),
-  (6, 'WeatherStation'),
-  (7, 'WaterLevelGuage');
+  (1, 'HEC-HMS', NULL),
+  (2, 'SHER', NULL),
+  (3, 'WRF', NULL),
+  (4, 'FLO2D', NULL),
+  (5, 'EPM', NULL),
+  (6, 'WeatherStation', NULL),
+  (7, 'WaterLevelGuage', NULL);
 
 INSERT INTO curw.unit (`id`, `unit`, `type`)
 VALUES

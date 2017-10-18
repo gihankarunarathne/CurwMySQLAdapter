@@ -219,14 +219,22 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 1)
 
-    def test_getStations(self) :
+    def test_getStationByName(self):
+        query = {
+            'name': 'Hanwella'
+        }
+        station = self.adapter.getStation(query)
+        self.assertEqual(len(station.keys()), 7)
+        self.assertTrue(isinstance(station, dict))
+
+    def test_getStationsInArea(self) :
         query = {
             'latitude_lower': '6.83564',
             'longitude_lower': '80.0817',
             'latitude_upper': '7.18517',
             'longitude_upper': '80.6147'
         }
-        stations = self.adapter.getStations(query)
+        stations = self.adapter.getStationsInArea(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
 
@@ -239,7 +247,7 @@ class MySQLAdapterTest(unittest.TestCase) :
             'latitude_upper': '7.18517',
             'longitude_upper': '80.6147'
         }
-        stations = self.adapter.getStations(query)
+        stations = self.adapter.getStationsInArea(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
         stations = [{'name': 'Hanwella'}, {'name': 'Colombo'}]

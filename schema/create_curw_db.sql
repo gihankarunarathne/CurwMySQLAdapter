@@ -45,6 +45,6 @@ END IF;
  */
 # Store CUrW chunk timeseries data. E.g. 'Forecast-0-d', 'Forecast-1-d' etc
 CREATE DATABASE IF NOT EXISTS curw;
-# Store CUrW continous timeseries data. E.g. 'Observed', 'Forecast'
-CREATE DATABASE IF NOT EXISTS curwts;
+# Store CUrW continous timeseries data. E.g. 'Observed', 'Forecast' of Irrigation Dept
+CREATE DATABASE IF NOT EXISTS hmis;
 

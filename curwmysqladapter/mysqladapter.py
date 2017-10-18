@@ -32,10 +32,15 @@ class mysqladapter :
         }
         self.metaStructKeys = sorted(self.metaStruct.keys())
         self.stationStruct = {
+            'id': '',
+            'stationId': '',
             'name': '',
             'latitude': '',
-            'longitude': ''
+            'longitude': '',
+            'resolution': '',
+            'description': ''
         }
+        self.stationStructKeys = self.stationStruct.keys()
 
     def getMetaStruct(self) :
         '''Get the Meta Data Structure of hash value
@@ -391,7 +396,58 @@ class mysqladapter :
         finally:
             return rowCount
 
+    def getStation(self, query={}) :
+        '''
+        Get matching station details for given query.
+
+        :param query Dict: Query to find the station. It may contain any of following keys s.t.
+        {
+            id: 100001, // Integer
+            stationId: 'curw_hanwella',
+            name: 'Hanwella'
+        }
+        :return Object: Details of matching station. If not found empty Object will be return.
+        '''
+        try:
+            with self.connection.cursor() as cursor:
+                outPutOrder = []
+                for key in self.stationStructKeys :
+                    outPutOrder.append("`%s` as `%s`" % (key, key))
+                outPutOrder = ','.join(outPutOrder)
+
+                sql = "SELECT %s FROM `station` " % (outPutOrder)
+                if query :
+                    sql += "WHERE "
+                    cnt = 0
+                    for key in query :
+                        if cnt :
+                            sql += "AND "
+
+                        sql += "`%s`=\"%s\" " % (key, query[key])
+                        cnt += 1
+
+                print('sql (getStation)::', sql)
+                cursor.execute(sql)
+                station = cursor.fetchone()
+                response = {}
+                for i, value in enumerate(self.stationStructKeys):
+                    response[value] = station[i]
+                print('station::', response)
+                return response
+
+        except Exception as e :
+            traceback.print_exc()
+
     def getStations(self, query={}) :
+        '''
+        Get matching stations details for given query.
+
+        :param query:
+        :return:
+        '''
+        return []
+
+    def getStationsInArea(self, query={}) :
         '''Get stations
         
         :param dict query: Query for retrieve stations. It may contain any of following keys s.t.

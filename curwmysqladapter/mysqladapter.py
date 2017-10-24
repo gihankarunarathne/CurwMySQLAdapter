@@ -1,15 +1,19 @@
 #!/usr/bin/python3
 
-import pymysql.cursors, hashlib, collections, json, traceback, copy
+import hashlib
+import json
+import pymysql.cursors
+import traceback
 
-class mysqladapter :
-    def __init__(self, host="localhost", user="root", password="", db="curw") :
-        '''Initialize Database Connection'''
+
+class MySQLAdapter:
+    def __init__(self, host="localhost", user="root", password="", db="curw"):
+        """Initialize Database Connection"""
         # Open database connection
         self.connection = pymysql.connect(host=host,
-                            user=user,
-                            password=password,
-                            db=db)
+                                          user=user,
+                                          password=password,
+                                          db=db)
 
         # prepare a cursor object using cursor() method
         cursor = self.connection.cursor()
@@ -20,7 +24,7 @@ class mysqladapter :
         # Fetch a single row using fetchone() method.
         data = cursor.fetchone()
 
-        print ("Database version : %s " % data)
+        print("Database version : %s " % data)
 
         self.metaStruct = {
             'station': '',
@@ -42,19 +46,19 @@ class mysqladapter :
         }
         self.stationStructKeys = self.stationStruct.keys()
 
-    def getMetaStruct(self) :
-        '''Get the Meta Data Structure of hash value
+    def getMetaStruct(self):
+        """Get the Meta Data Structure of hash value
         NOTE: start_date and end_date is not using for hashing
-        '''
+        """
         return self.metaStruct
 
-    def getStationStruct(self) :
-        '''Get the Station Data Structure
-        '''
+    def getStationStruct(self):
+        """Get the Station Data Structure
+        """
         return self.stationStruct
 
-    def getEventId(self, metaData) :
-        '''Get the event id for given meta data
+    def getEventId(self, metaData):
+        """Get the event id for given meta data
         NOTE: Only 'station', 'variable', 'unit', 'type', 'source', 'name' fields use for generate hash value
 
         :param dict metaData: Dict of Meta Data that use to create the hash
@@ -69,12 +73,12 @@ class mysqladapter :
         }
 
         :return str: sha256 hash value in hex format (length of 64 characters). If does not exists, return None.
-        '''
+        """
         eventId = None
         m = hashlib.sha256()
 
         hashData = dict(self.metaStruct)
-        for i, value in enumerate(self.metaStructKeys) :
+        for i, value in enumerate(self.metaStructKeys):
             hashData[value] = metaData[value]
         print('hash Data ', hashData)
 
@@ -86,16 +90,16 @@ class mysqladapter :
 
                 cursor.execute(sql, possibleId)
                 isExist = cursor.fetchone()
-                if isExist is not None :
+                if isExist is not None:
                     eventId = possibleId
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
         finally:
             return eventId
 
-
-    def createEventId(self, metaData) :
-        '''Create a new event id for given meta data
+    def createEventId(self, metaData):
+        """
+        Create a new event id for given meta data
 
         :param dict metaData: Dict of Meta Data that use to create the hash
         Meta Data should contains all of following keys s.t.
@@ -110,9 +114,9 @@ class mysqladapter :
         If end_date   is not set, use default date as "01 Jan 2050 00:00:00 GMT"
 
         :return str: sha256 hash value in hex format (length of 64 characters)
-        '''
+        """
         hashData = dict(self.metaStruct)
-        for i, value in enumerate(self.metaStructKeys) :
+        for i, value in enumerate(self.metaStructKeys):
             hashData[value] = metaData[value]
 
         m = hashlib.sha256()
@@ -153,13 +157,13 @@ class mysqladapter :
                 cursor.execute(sql, sqlValues)
                 self.connection.commit()
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
         return eventId
 
-    def insertTimeseries(self, eventId, timeseries, upsert=False) :
-        '''Insert timeseries into the db against given eventId
+    def insertTimeseries(self, eventId, timeseries, upsert=False):
+        """Insert timeseries into the db against given eventId
 
         :param string eventId: Hex Hash value that need to store timeseries against.
 
@@ -167,17 +171,17 @@ class mysqladapter :
         E.g. [ ['2017-05-01 00:00:00', 1.08], ['2017-05-01 01:00:00', 2.04], ... ]
 
         :param boolean upsert: If True, upsert existing values ON DUPLICATE KEY. Default is False.
-        Ref: 1). https://stackoverflow.com/a/14383794/1461060 
+        Ref: 1). https://stackoverflow.com/a/14383794/1461060
              2). https://chartio.com/resources/tutorials/how-to-insert-if-row-does-not-exist-upsert-in-mysql/
 
         :return int: Affected row count.
-        '''
+        """
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
                 sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s)"
 
-                if upsert :
+                if upsert:
                     sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
                 # Refer to performance in copy list : https://stackoverflow.com/a/2612990/1461060
@@ -185,14 +189,14 @@ class mysqladapter :
                 for item in timeseries: timeseriesCopy.append(item[:])
 
                 newTimeseries = []
-                for t in [i for i in timeseriesCopy] :
-                    if len(t) > 1 :
+                for t in [i for i in timeseriesCopy]:
+                    if len(t) > 1:
                         # Format value into 3 decimal palaces
                         t[1] = round(float(t[1]), 3)
                         # Insert EventId in font of timestamp, value list
                         t.insert(0, eventId)
                         newTimeseries.append(t)
-                    else :
+                    else:
                         print('Invalid timeseries data :', t)
 
                 # print(newTimeseries[:10])
@@ -203,18 +207,18 @@ class mysqladapter :
                 cursor.execute(sql, (eventId, eventId, eventId))
                 self.connection.commit()
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
         finally:
             return rowCount
 
-    def deleteTimeseries(self, eventId) :
-        '''Delete given timeseries from the database
+    def deleteTimeseries(self, eventId):
+        """Delete given timeseries from the database
 
         :param string eventId: Hex Hash value that need to delete timeseries against
 
         :return int: Affected row count.
-        '''
+        """
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
@@ -230,13 +234,13 @@ class mysqladapter :
                 rowCount = cursor.execute(sql[0], (eventId))
                 self.connection.commit()
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
         finally:
             return rowCount
 
-    def getEventIds(self, metaQuery={}, opts={}) :
-        '''Get event ids set according to given meta data
+    def getEventIds(self, metaQuery={}, opts={}):
+        """Get event ids set according to given meta data
 
         :param dict metaQuery: Dict of Meta Query that use to search the hash
         event ids. It may contain any of following keys s.t.
@@ -258,38 +262,38 @@ class mysqladapter :
         }
 
         :return list: Return list of event objects which matches the given scenario
-        '''
+        """
         try:
-            if not opts.get('limit') :
+            if not opts.get('limit'):
                 opts['limit'] = 100
-            if not opts.get('skip') :
+            if not opts.get('skip'):
                 opts['skip'] = 0
 
             with self.connection.cursor() as cursor:
                 outOrder = []
                 sortedKeys = ['id'] + self.metaStructKeys
-                for key in sortedKeys :
+                for key in sortedKeys:
                     outOrder.append("`%s` as `%s`" % (key, key))
                 outOrder = ','.join(outOrder)
 
                 sql = "SELECT %s FROM `run_view` " % (outOrder)
-                if metaQuery :
+                if metaQuery:
                     sql += "WHERE "
                     cnt = 0
-                    for key in metaQuery :
-                        if cnt :
+                    for key in metaQuery:
+                        if cnt:
                             sql += "AND "
 
                         # TODO: Need to update start and end date of timeseries
-                        if key is 'from' :
+                        if key is 'from':
                             # sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
                             sql = sql[:-4]
-                        elif key is 'to' :
+                        elif key is 'to':
                             # sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
                             sql = sql[:-4]
-                        elif key is 'station' and isinstance(metaQuery[key], list) :
-                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in metaQuery[key]) )
-                        else :
+                        elif key is 'station' and isinstance(metaQuery[key], list):
+                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in metaQuery[key]))
+                        else:
                             sql += "`%s`=\"%s\" " % (key, metaQuery[key])
                         cnt += 1
 
@@ -298,19 +302,19 @@ class mysqladapter :
                 events = cursor.fetchmany(opts.get('limit'))
                 print('events::', events)
                 response = []
-                for event in events :
+                for event in events:
                     metaStruct = dict(self.metaStruct)
-                    for i, value in enumerate(sortedKeys) :
+                    for i, value in enumerate(sortedKeys):
                         metaStruct[sortedKeys[i]] = event[i]
                     response.append(metaStruct)
 
                 return response
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
-    def retrieveTimeseries(self, metaQuery=[], opts={}) :
-        '''Get timeseries
+    def retrieveTimeseries(self, metaQuery=[], opts={}):
+        """Get timeseries
 
         :param (dict | list) metaQuery: If Meta Query is a Dict, then it'll use to search the hash
         event ids. It may contain any of following keys s.t.
@@ -324,7 +328,7 @@ class mysqladapter :
             'start_date': '2017-05-01 00:00:00',
             'end_date': '2017-05-03 23:00:00',
         }
-        If the Meta Query is a List, then those will use to retrieve the timeseries. 
+        If the Meta Query is a List, then those will use to retrieve the timeseries.
         List may have following struture s.t.
             ['eventId1', 'eventId2', ...] // List of strings
         Or
@@ -339,33 +343,33 @@ class mysqladapter :
         }
 
         :return list: Return list of objects with the timeseries data for given matching events
-        '''
-        try :
-            if not opts.get('limit') :
+        """
+        try:
+            if not opts.get('limit'):
                 opts['limit'] = 100
-            if not opts.get('skip') :
+            if not opts.get('skip'):
                 opts['skip'] = 0
 
             with self.connection.cursor() as cursor:
-                if isinstance(metaQuery, dict) :
+                if isinstance(metaQuery, dict):
                     eventIds = self.getEventIds(metaQuery)
-                else :
+                else:
                     eventIds = list(metaQuery)
 
                 print('eventIds ::', eventIds)
                 response = []
-                for event in eventIds :
-                    if isinstance(event, dict) :
+                for event in eventIds:
+                    if isinstance(event, dict):
                         eventId = event.get('id')
-                    else :
+                    else:
                         eventId = event
                         event = {'id': eventId}
 
                     sql = "SELECT `time`,`value` FROM `data` WHERE `id`=\"%s\" " % (eventId)
 
-                    if opts.get('from') :
-                            sql += "AND `%s`>=\"%s\" " % ('time', opts['from'])
-                    if opts.get('to') :
+                    if opts.get('from'):
+                        sql += "AND `%s`>=\"%s\" " % ('time', opts['from'])
+                    if opts.get('to'):
                         sql += "AND `%s`<=\"%s\" " % ('time', opts['to'])
 
                     print('sql (retrieveTimeseries)::', sql)
@@ -375,11 +379,11 @@ class mysqladapter :
                     response.append(event)
 
                 return response
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
-    def createStation(self, station=[]) :
-        '''Insert stations into the database
+    def createStation(self, station=[]):
+        """Insert stations into the database
 
          Station ids ranged as below;
         - 1 xx xxx - CUrW (stationId: curw_<SOMETHING>)
@@ -395,7 +399,7 @@ class mysqladapter :
         :param list/tuple   station: Station details in the form of list s.t.
         [<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
         (<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>)
-        '''
+        """
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
@@ -407,13 +411,13 @@ class mysqladapter :
                 self.connection.commit()
                 # print('Created Station #', rowCount)
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
         finally:
             return rowCount
 
-    def getStation(self, query={}) :
-        '''
+    def getStation(self, query={}):
+        """
         Get matching station details for given query.
 
         :param query Dict: Query to find the station. It may contain any of following keys s.t.
@@ -423,20 +427,20 @@ class mysqladapter :
             name: 'Hanwella'
         }
         :return Object: Details of matching station. If not found empty Object will be return.
-        '''
+        """
         try:
             with self.connection.cursor() as cursor:
                 outPutOrder = []
-                for key in self.stationStructKeys :
+                for key in self.stationStructKeys:
                     outPutOrder.append("`%s` as `%s`" % (key, key))
                 outPutOrder = ','.join(outPutOrder)
 
                 sql = "SELECT %s FROM `station` " % (outPutOrder)
-                if query :
+                if query:
                     sql += "WHERE "
                     cnt = 0
-                    for key in query :
-                        if cnt :
+                    for key in query:
+                        if cnt:
                             sql += "AND "
 
                         sql += "`%s`=\"%s\" " % (key, query[key])
@@ -451,30 +455,30 @@ class mysqladapter :
                 print('station::', response)
                 return response
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
     def deleteStation(self, id=0, stationId=''):
-        '''Delete given station from the database
+        """Delete given station from the database
 
         :param integer id: Station Id
         :param string stationId: Station Id
 
         :return int: Affected row count.
-        '''
+        """
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
-                if id > 0 :
+                if id > 0:
                     sql = "DELETE FROM `station` WHERE `id`=%s"
                     rowCount = cursor.execute(sql, (id))
                     self.connection.commit()
-                elif stationId :
+                elif stationId:
                     sql = "DELETE FROM `station` WHERE `stationId`=%s"
 
                     rowCount = cursor.execute(sql, (stationId))
                     self.connection.commit()
-                else :
+                else:
                     print('Unable to find station')
 
         except Exception as e:
@@ -482,18 +486,18 @@ class mysqladapter :
         finally:
             return rowCount
 
-    def getStations(self, query={}) :
-        '''
+    def getStations(self, query={}):
+        """
         Get matching stations details for given query.
 
         :param query:
         :return:
-        '''
+        """
         return []
 
-    def getStationsInArea(self, query={}) :
-        '''Get stations
-        
+    def getStationsInArea(self, query={}):
+        """Get stations
+
         :param dict query: Query for retrieve stations. It may contain any of following keys s.t.
         {
             latitude_lower: '',
@@ -505,30 +509,30 @@ class mysqladapter :
         it'll look into all the stations which reside inside that area.
 
         :return list: Return list of objects with the stations data which resign in given area.
-        '''
-        try :
+        """
+        try:
             with self.connection.cursor() as cursor:
                 outOrder = []
                 sortedKeys = sorted(self.stationStruct.keys())
-                for key in sortedKeys :
+                for key in sortedKeys:
                     outOrder.append("`%s` as `%s`" % (key, key))
                 outOrder = ','.join(outOrder)
 
                 sql = "SELECT %s FROM `station` " % (outOrder)
-                if query :
+                if query:
                     sql += "WHERE "
                     cnt = 0
-                    for key in query :
-                        if cnt :
+                    for key in query:
+                        if cnt:
                             sql += "AND "
 
-                        if key is 'latitude_lower' :
+                        if key is 'latitude_lower':
                             sql += "`%s`>=\"%s\" " % ('latitude', query[key])
-                        elif key is 'longitude_lower' :
+                        elif key is 'longitude_lower':
                             sql += "`%s`>=\"%s\" " % ('longitude', query[key])
-                        elif key is 'latitude_upper' :
+                        elif key is 'latitude_upper':
                             sql += "`%s`<=\"%s\" " % ('latitude', query[key])
-                        elif key is 'longitude_upper' :
+                        elif key is 'longitude_upper':
                             sql += "`%s`<=\"%s\" " % ('longitude', query[key])
                         cnt += 1
 
@@ -536,18 +540,16 @@ class mysqladapter :
                 cursor.execute(sql)
                 stations = cursor.fetchall()
                 response = []
-                for station in stations :
+                for station in stations:
                     stationStruct = dict(self.stationStruct)
-                    for i, value in enumerate(sortedKeys) :
+                    for i, value in enumerate(sortedKeys):
                         stationStruct[sortedKeys[i]] = station[i]
                     response.append(stationStruct)
 
                 return response
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
-    def close(self) :
+    def close(self):
         # disconnect from server
         self.connection.close()
-
-

@@ -8,7 +8,7 @@ from glob import glob
 
 import unittest2 as unittest
 
-from curwmysqladapter import mysqladapter
+from curwmysqladapter import mysqladapter, Station
 
 class MySQLAdapterTest(unittest.TestCase):
     @classmethod
@@ -237,19 +237,35 @@ class MySQLAdapterTest(unittest.TestCase):
         self.assertEqual(len(timeseries), 1)
 
     def test_createStation(self):
-        station = (110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
-
+        station = (Station.CUrW, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
+        self.logger.info(station)
         rowCount = self.adapter.createStation(station)
         self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.deleteStation(station[0])
+        rowCount = self.adapter.deleteStation(stationId=station[1])
+        self.assertEqual(rowCount, 1)
+
+    def test_createStationWithPublic(self):
+        station = (Station.Public, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
+        self.logger.info(station)
+        rowCount = self.adapter.createStation(station)
+        self.assertEqual(rowCount, 1)
+        rowCount = self.adapter.deleteStation(stationId=station[1])
         self.assertEqual(rowCount, 1)
 
     def test_createStationWithList(self):
-        station = [110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
+        station = [Station.Satellite, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
         rowCount = self.adapter.createStation(station)
         self.assertEqual(rowCount, 1)
         rowCount = self.adapter.deleteStation(stationId=station[1])
+        self.assertEqual(rowCount, 1)
+
+    def test_createStationWithGivenId(self):
+        station = [110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
+
+        rowCount = self.adapter.createStation(station)
+        self.assertEqual(rowCount, 1)
+        rowCount = self.adapter.deleteStation(station[0])
         self.assertEqual(rowCount, 1)
 
     def test_getStationByName(self):

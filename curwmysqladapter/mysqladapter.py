@@ -6,7 +6,7 @@ import logging
 import traceback
 
 import pymysql.cursors
-
+from .station import Station
 
 class mysqladapter:
     def __init__(self, host="localhost", user="root", password="", db="curw"):
@@ -405,7 +405,26 @@ class mysqladapter:
         rowCount = 0
         try:
             with self.connection.cursor() as cursor:
-                # TODO: station Id validation and fill out default values
+                if isinstance(station, tuple) and isinstance(station[0], Station):
+                    sql = "SELECT max(id) FROM `station` WHERE %s < id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
+                    logging.debug(sql)
+                    cursor.execute(sql)
+                    lastId = cursor.fetchone()
+                    station = list(station)
+                    if lastId[0] is not None:
+                        station[0] = lastId[0]
+                    else:
+                        station[0] = station[0].value
+                if isinstance(station, list) and isinstance(station[0], Station):
+                    sql = "SELECT max(id) FROM `station` WHERE %s < id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
+                    logging.debug(sql)
+                    cursor.execute(sql)
+                    lastId = cursor.fetchone()
+                    if lastId[0] is not None:
+                        station[0] = lastId[0]
+                    else:
+                        station[0] = station[0].value
+
                 sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 logging.debug('Create Station: %s', station)

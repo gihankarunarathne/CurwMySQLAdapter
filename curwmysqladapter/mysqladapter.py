@@ -2,11 +2,13 @@
 
 import hashlib
 import json
-import pymysql.cursors
+import logging
 import traceback
 
+import pymysql.cursors
 
-class MySQLAdapter:
+
+class mysqladapter:
     def __init__(self, host="localhost", user="root", password="", db="curw"):
         """Initialize Database Connection"""
         # Open database connection
@@ -24,9 +26,9 @@ class MySQLAdapter:
         # Fetch a single row using fetchone() method.
         data = cursor.fetchone()
 
-        print("Database version : %s " % data)
+        logging.info("Database version : %s " % data)
 
-        self.metaStruct = {
+        self.meta_struct = {
             'station': '',
             'variable': '',
             'unit': '',
@@ -34,8 +36,8 @@ class MySQLAdapter:
             'source': '',
             'name': ''
         }
-        self.metaStructKeys = sorted(self.metaStruct.keys())
-        self.stationStruct = {
+        self.meta_struct_keys = sorted(self.meta_struct.keys())
+        self.station_struct = {
             'id': '',
             'stationId': '',
             'name': '',
@@ -44,18 +46,18 @@ class MySQLAdapter:
             'resolution': '',
             'description': ''
         }
-        self.stationStructKeys = self.stationStruct.keys()
+        self.station_struct_keys = self.station_struct.keys()
 
     def getMetaStruct(self):
         """Get the Meta Data Structure of hash value
         NOTE: start_date and end_date is not using for hashing
         """
-        return self.metaStruct
+        return self.meta_struct
 
     def getStationStruct(self):
         """Get the Station Data Structure
         """
-        return self.stationStruct
+        return self.station_struct
 
     def getEventId(self, metaData):
         """Get the event id for given meta data
@@ -77,10 +79,10 @@ class MySQLAdapter:
         eventId = None
         m = hashlib.sha256()
 
-        hashData = dict(self.metaStruct)
-        for i, value in enumerate(self.metaStructKeys):
+        hashData = dict(self.meta_struct)
+        for i, value in enumerate(self.meta_struct_keys):
             hashData[value] = metaData[value]
-        print('hash Data ', hashData)
+        logging.debug('hash Data:: %s', hashData)
 
         m.update(json.dumps(hashData, sort_keys=True).encode("ascii"))
         possibleId = m.hexdigest()
@@ -115,8 +117,8 @@ class MySQLAdapter:
 
         :return str: sha256 hash value in hex format (length of 64 characters)
         """
-        hashData = dict(self.metaStruct)
-        for i, value in enumerate(self.metaStructKeys):
+        hashData = dict(self.meta_struct)
+        for i, value in enumerate(self.meta_struct_keys):
             hashData[value] = metaData[value]
 
         m = hashlib.sha256()
@@ -197,9 +199,9 @@ class MySQLAdapter:
                         t.insert(0, eventId)
                         newTimeseries.append(t)
                     else:
-                        print('Invalid timeseries data :', t)
+                        logging.warning('Invalid timeseries data:: %s', t)
 
-                # print(newTimeseries[:10])
+                logging.debug(newTimeseries[:10])
                 rowCount = cursor.executemany(sql, (newTimeseries))
                 self.connection.commit()
 
@@ -271,7 +273,7 @@ class MySQLAdapter:
 
             with self.connection.cursor() as cursor:
                 outOrder = []
-                sortedKeys = ['id'] + self.metaStructKeys
+                sortedKeys = ['id'] + self.meta_struct_keys
                 for key in sortedKeys:
                     outOrder.append("`%s` as `%s`" % (key, key))
                 outOrder = ','.join(outOrder)
@@ -297,16 +299,16 @@ class MySQLAdapter:
                             sql += "`%s`=\"%s\" " % (key, metaQuery[key])
                         cnt += 1
 
-                print('sql (getEventIds)::', sql)
+                logging.debug('sql (getEventIds):: %s', sql)
                 cursor.execute(sql)
                 events = cursor.fetchmany(opts.get('limit'))
-                print('events::', events)
+                logging.debug('Events (getEventIds):: %s', events)
                 response = []
                 for event in events:
-                    metaStruct = dict(self.metaStruct)
+                    meta_struct = dict(self.meta_struct)
                     for i, value in enumerate(sortedKeys):
-                        metaStruct[sortedKeys[i]] = event[i]
-                    response.append(metaStruct)
+                        meta_struct[sortedKeys[i]] = event[i]
+                    response.append(meta_struct)
 
                 return response
 
@@ -356,7 +358,7 @@ class MySQLAdapter:
                 else:
                     eventIds = list(metaQuery)
 
-                print('eventIds ::', eventIds)
+                logging.debug('eventIds :: %s', eventIds)
                 response = []
                 for event in eventIds:
                     if isinstance(event, dict):
@@ -372,7 +374,7 @@ class MySQLAdapter:
                     if opts.get('to'):
                         sql += "AND `%s`<=\"%s\" " % ('time', opts['to'])
 
-                    print('sql (retrieveTimeseries)::', sql)
+                    logging.debug('sql (retrieveTimeseries):: %s', sql)
                     cursor.execute(sql)
                     timeseries = cursor.fetchall()
                     event['timeseries'] = [[time, value] for time, value in timeseries]
@@ -406,10 +408,10 @@ class MySQLAdapter:
                 # TODO: station Id validation and fill out default values
                 sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-                # print(station)
+                logging.debug('Create Station: %s', station)
                 rowCount = cursor.execute(sql, station)
                 self.connection.commit()
-                # print('Created Station #', rowCount)
+                logging.debug('Created Station # %s', rowCount)
 
         except Exception as e:
             traceback.print_exc()
@@ -431,7 +433,7 @@ class MySQLAdapter:
         try:
             with self.connection.cursor() as cursor:
                 outPutOrder = []
-                for key in self.stationStructKeys:
+                for key in self.station_struct_keys:
                     outPutOrder.append("`%s` as `%s`" % (key, key))
                 outPutOrder = ','.join(outPutOrder)
 
@@ -446,13 +448,13 @@ class MySQLAdapter:
                         sql += "`%s`=\"%s\" " % (key, query[key])
                         cnt += 1
 
-                print('sql (getStation)::', sql)
+                logging.debug('sql (getStation):: %s', sql)
                 cursor.execute(sql)
                 station = cursor.fetchone()
                 response = {}
-                for i, value in enumerate(self.stationStructKeys):
+                for i, value in enumerate(self.station_struct_keys):
                     response[value] = station[i]
-                print('station::', response)
+                logging.debug('station:: %s', response)
                 return response
 
         except Exception as e:
@@ -479,7 +481,7 @@ class MySQLAdapter:
                     rowCount = cursor.execute(sql, (stationId))
                     self.connection.commit()
                 else:
-                    print('Unable to find station')
+                    logging.warning('Unable to find station')
 
         except Exception as e:
             traceback.print_exc()
@@ -513,7 +515,7 @@ class MySQLAdapter:
         try:
             with self.connection.cursor() as cursor:
                 outOrder = []
-                sortedKeys = sorted(self.stationStruct.keys())
+                sortedKeys = sorted(self.station_struct.keys())
                 for key in sortedKeys:
                     outOrder.append("`%s` as `%s`" % (key, key))
                 outOrder = ','.join(outOrder)
@@ -536,15 +538,15 @@ class MySQLAdapter:
                             sql += "`%s`<=\"%s\" " % ('longitude', query[key])
                         cnt += 1
 
-                print('sql (getStations)::', sql)
+                logging.debug('sql (getStations):: %s', sql)
                 cursor.execute(sql)
                 stations = cursor.fetchall()
                 response = []
                 for station in stations:
-                    stationStruct = dict(self.stationStruct)
+                    station_struct = dict(self.station_struct)
                     for i, value in enumerate(sortedKeys):
-                        stationStruct[sortedKeys[i]] = station[i]
-                    response.append(stationStruct)
+                        station_struct[sortedKeys[i]] = station[i]
+                    response.append(station_struct)
 
                 return response
         except Exception as e:

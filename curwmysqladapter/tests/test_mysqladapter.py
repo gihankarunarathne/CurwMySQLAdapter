@@ -1,31 +1,43 @@
+import csv
+import datetime
+import json
+import os
+import logging, logging.config
+import traceback
+from glob import glob
+
 import unittest2 as unittest
-import traceback, json, os, glob, csv, datetime
 
 from curwmysqladapter import mysqladapter
 
-class MySQLAdapterTest(unittest.TestCase) :
-
+class MySQLAdapterTest(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        print('setUpClass')
-        try :
+        try:
             ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
             CONFIG = json.loads(open(ROOT_DIR + '/CONFIG.json').read())
 
-            MYSQL_HOST="localhost"
-            MYSQL_USER="root"
-            MYSQL_DB="curw"
-            MYSQL_PASSWORD=""
+            # Initialize Logger
+            logging_config = json.loads(open(ROOT_DIR + '/LOGGING_CONFIG.json').read())
+            logging.config.dictConfig(logging_config)
+            self.logger = logging.getLogger('MySQLAdapterTest')
+            self.logger.addHandler(logging.StreamHandler())
+            self.logger.info('setUpClass')
+
+            MYSQL_HOST = "localhost"
+            MYSQL_USER = "root"
+            MYSQL_DB = "curw"
+            MYSQL_PASSWORD = ""
 
             DAY_INTERVAL = 24
 
-            if 'MYSQL_HOST' in CONFIG :
+            if 'MYSQL_HOST' in CONFIG:
                 MYSQL_HOST = CONFIG['MYSQL_HOST']
-            if 'MYSQL_USER' in CONFIG :
+            if 'MYSQL_USER' in CONFIG:
                 MYSQL_USER = CONFIG['MYSQL_USER']
-            if 'MYSQL_DB' in CONFIG :
+            if 'MYSQL_DB' in CONFIG:
                 MYSQL_DB = CONFIG['MYSQL_DB']
-            if 'MYSQL_PASSWORD' in CONFIG :
+            if 'MYSQL_PASSWORD' in CONFIG:
                 MYSQL_PASSWORD = CONFIG['MYSQL_PASSWORD']
 
             self.adapter = mysqladapter(host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, db=MYSQL_DB)
@@ -45,47 +57,49 @@ class MySQLAdapterTest(unittest.TestCase) :
                 'end_date': '2017-05-03 23:00:00'
             }
             RAINFALL_DIR = os.path.join(ROOT_DIR, 'data', 'Rainfall')
-            print(RAINFALL_DIR)
-            for station in stations :
-                print('Inserting Rainfall at ', station)
-                for file in glob.glob(os.path.join(RAINFALL_DIR, station + '*.csv')):
+            self.logger.debug(RAINFALL_DIR)
+            for station in stations:
+                self.logger.info('Inserting Rainfall at %s', station)
+                for file in glob(os.path.join(RAINFALL_DIR, station + '*.csv')):
                     timeseries = csv.reader(open(file, 'r'), delimiter=' ', skipinitialspace=True)
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
                     dateArr = filename.split('.')[0].split('-')
-                    print('-'.join(dateArr[1:]))
+                    self.logger.debug('-'.join(dateArr[1:]))
                     startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
                     endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    print(startDate, endDate)
+                    self.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
                     stationMeta = dict(metaData)
                     stationMeta['station'] = station
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
                     stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
 
-                    for i in range(0, 3) :
+                    for i in range(0, 3):
                         stationMeta['type'] = types[i]
                         eventId = self.adapter.getEventId(stationMeta)
-                        if eventId is None :
+                        if eventId is None:
                             eventId = self.adapter.createEventId(stationMeta)
-                            print('HASH SHA256 created: ', eventId)
-                        else :
-                            print('HASH SHA256 exists: ', eventId)
-                        
+                            self.logger.debug('HASH SHA256 created: %s', eventId)
+                        else:
+                            self.logger.debug('HASH SHA256 exists: %s', eventId)
+
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in self.eventIds :
+                        if eventId not in self.eventIds:
                             self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries[i*DAY_INTERVAL:(i+1)*DAY_INTERVAL], True)
-                        print('%s rows inserted.' % rowCount)
-
+                        rowCount = self.adapter.insertTimeseries(eventId,
+                                                                 timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
+                                                                 True)
+                        self.logger.debug('%s rows inserted.', rowCount)
+            self.logger.info('Inserted Rainfall data.')
 
             # Store Discharge Data
             stations = ['Hanwella']
             types = [
-                'Forecast-0-d', 
-                'Forecast-1-d-after', 
-                'Forecast-2-d-after', 
+                'Forecast-0-d',
+                'Forecast-1-d-after',
+                'Forecast-2-d-after',
                 'Forecast-3-d-after',
                 'Forecast-4-d-after',
                 'Forecast-5-d-after'
@@ -101,60 +115,63 @@ class MySQLAdapterTest(unittest.TestCase) :
                 'end_date': '2017-05-03 23:00:00'
             }
             DISCHARGE_DIR = os.path.join(ROOT_DIR, 'data', 'Discharge')
-            for station in stations :
-                print('Inserting Discharges at ', station)
-                for file in glob.glob(os.path.join(DISCHARGE_DIR, station + '*.csv')):
+            for station in stations:
+                self.logger.info('Inserting Discharges at %s', station)
+                for file in glob(os.path.join(DISCHARGE_DIR, station + '*.csv')):
                     timeseries = csv.reader(open(file, 'r'), delimiter=',', skipinitialspace=True)
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
                     dateArr = filename.split('.')[0].split('-')
-                    print('-'.join(dateArr[1:]))
+                    self.logger.debug('-'.join(dateArr[1:]))
                     startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
                     endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    print(startDate, endDate)
+                    self.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
                     stationMeta = dict(metaData)
                     stationMeta['station'] = station
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
                     stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
 
-                    for i in range(0, 6) :
+                    for i in range(0, 6):
                         stationMeta['type'] = types[i]
                         eventId = self.adapter.getEventId(stationMeta)
-                        if eventId is None :
+                        if eventId is None:
                             eventId = self.adapter.createEventId(stationMeta)
-                            print('HASH SHA256 created: ', eventId)
-                        else :
-                            print('HASH SHA256 exists: ', eventId)
-                        
+                            self.logger.debug('HASH SHA256 created: %s', eventId)
+                        else:
+                            self.logger.debug('HASH SHA256 exists: %s', eventId)
+
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in self.eventIds :
+                        if eventId not in self.eventIds:
                             self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId, timeseries[i*DAY_INTERVAL:(i+1)*DAY_INTERVAL], True)
-                        print('%s rows inserted.' % rowCount)
+                        rowCount = self.adapter.insertTimeseries(eventId,
+                                                                 timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
+                                                                 True)
+                        self.logger.debug('%s rows inserted.', rowCount)
+            self.logger.info("Inserted Discharge data.")
 
 
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
     @classmethod
     def tearDownClass(self):
         print('tearDownClass')
-        try :
-            for id in self.eventIds :
+        try:
+            for id in self.eventIds:
                 self.adapter.deleteTimeseries(id)
             self.adapter.close()
-        except Exception as e :
+        except Exception as e:
             traceback.print_exc()
 
     def setUp(self):
-        print('setUp')
+        self.logger.info('setUp')
 
     def tearDown(self):
-        print('tearDown')
+        self.logger.info('tearDown')
 
-    def test_getEventIdExists(self) :
+    def test_getEventIdExists(self):
         metaData = {
             'station': 'Hanwella',
             'variable': 'Discharge',
@@ -167,7 +184,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertTrue(isinstance(eventId, str))
         self.assertTrue(eventId.isalnum())
 
-    def test_getEventIdNotExists(self) :
+    def test_getEventIdNotExists(self):
         metaData = {
             'station': 'Hanwella',
             'variable': 'Discharge',
@@ -179,22 +196,22 @@ class MySQLAdapterTest(unittest.TestCase) :
         eventId = self.adapter.getEventId(metaData)
         self.assertTrue(eventId is None)
 
-    def test_getEventIdsWithEmptyQuery(self) :
+    def test_getEventIdsWithEmptyQuery(self):
         response = self.adapter.getEventIds()
         self.assertEqual(len(response), 15)
 
-    def test_getEventIdsForGivenStation(self) :
+    def test_getEventIdsForGivenStation(self):
         metaQuery = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
             'type': 'Forecast-0-d',
         }
-        response = self.adapter.getEventIds(metaQuery)   
+        response = self.adapter.getEventIds(metaQuery)
         self.assertEqual(len(response), 1)
         timeseries = self.adapter.retrieveTimeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
-    def test_getEventIdsForListOfStations(self) :
+    def test_getEventIdsForListOfStations(self):
         metaQuery = {
             'station': ['Hanwella', 'Colombo'],
             'variable': 'Precipitation',
@@ -205,7 +222,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         timeseries = self.adapter.retrieveTimeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
-    def test_retrieveTimeseriesFromToDate(self) :
+    def test_retrieveTimeseriesFromToDate(self):
         metaQuery = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
@@ -220,7 +237,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(len(timeseries), 1)
 
     def test_createStation(self):
-        station = (110001, 'curw_test_station', 'Test Station', 7.111666667,  80.14983333, 0, "Testing Adapter")
+        station = (110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
 
         rowCount = self.adapter.createStation(station)
         self.assertEqual(rowCount, 1)
@@ -228,7 +245,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(rowCount, 1)
 
     def test_createStationWithList(self):
-        station = [110001, 'curw_test_station', 'Test Station', 7.111666667,  80.14983333, 0, "Testing Adapter"]
+        station = [110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
         rowCount = self.adapter.createStation(station)
         self.assertEqual(rowCount, 1)
@@ -243,7 +260,7 @@ class MySQLAdapterTest(unittest.TestCase) :
         self.assertEqual(len(station.keys()), 7)
         self.assertTrue(isinstance(station, dict))
 
-    def test_getStationsInArea(self) :
+    def test_getStationsInArea(self):
         query = {
             'latitude_lower': '6.83564',
             'longitude_lower': '80.0817',
@@ -256,7 +273,7 @@ class MySQLAdapterTest(unittest.TestCase) :
 
     # Scenario: All observed rainfall data series within a geographic region
     # (lower-left and upper-right coords provided) from date1 to date2
-    def test_retrieveAllTimeseriesInAreaForGivenTime(self) :
+    def test_retrieveAllTimeseriesInAreaForGivenTime(self):
         query = {
             'latitude_lower': '6.83564',
             'longitude_lower': '80.0817',

@@ -313,3 +313,24 @@ class MySQLAdapterTest(unittest.TestCase):
         timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 6)
+
+    def test_sourceCRUD(self):
+        # Create Source
+        parameters = {'key1': 'value1'}
+        source = ('FLO2D_v2', json.dumps(parameters))
+        self.logger.info(source)
+        createResponse = self.adapter.createSource(source)
+        self.assertEqual(createResponse.get('row_count', 0), 1)
+        self.assertTrue(createResponse.get('status', False))
+        newSource = createResponse.get('source', {})
+        sourceId = newSource[0]
+        self.assertTrue(sourceId > 0)
+        # Get Source
+        getResponse = self.adapter.getSource(sourceId)
+        self.assertEqual(getResponse.get('id'), sourceId)
+        newParamters = json.loads(getResponse.get('parameters', {}))
+        self.assertTrue(newParamters.get('key1'), parameters.get('key1'))
+        # Delete Source
+        deleteResponse = self.adapter.deleteSource(sourceId)
+        self.assertTrue(deleteResponse.get('status'))
+        self.assertEqual(deleteResponse.get('row_count'), 1)

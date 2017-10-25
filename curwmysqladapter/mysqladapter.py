@@ -37,6 +37,7 @@ class mysqladapter:
             'name': ''
         }
         self.meta_struct_keys = sorted(self.meta_struct.keys())
+
         self.station_struct = {
             'id': '',
             'stationId': '',
@@ -47,6 +48,13 @@ class mysqladapter:
             'description': ''
         }
         self.station_struct_keys = self.station_struct.keys()
+
+        self.source_struct = {
+            'id': '',
+            'source': '',
+            'parameters': ''
+        }
+        self.source_struct_keys = self.source_struct.keys()
 
     def getMetaStruct(self):
         """Get the Meta Data Structure of hash value
@@ -399,7 +407,7 @@ class mysqladapter:
         - 1 2xx xxx - FLO2D (stationId: flo2d_<SOMETHING>)
 
         :param list/tuple   station: Station details in the form of list s.t.
-        [<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
+        [<Station.CUrW>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
         (<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>)
         """
         rowCount = 0
@@ -412,7 +420,7 @@ class mysqladapter:
                     lastId = cursor.fetchone()
                     station = list(station)
                     if lastId[0] is not None:
-                        station[0] = lastId[0]
+                        station[0] = lastId[0] + 1
                     else:
                         station[0] = station[0].value
                 if isinstance(station, list) and isinstance(station[0], Station):
@@ -421,7 +429,7 @@ class mysqladapter:
                     cursor.execute(sql)
                     lastId = cursor.fetchone()
                     if lastId[0] is not None:
-                        station[0] = lastId[0]
+                        station[0] = lastId[0] + 1
                     else:
                         station[0] = station[0].value
 
@@ -570,6 +578,132 @@ class mysqladapter:
                 return response
         except Exception as e:
             traceback.print_exc()
+
+    def createSource(self, source=[]):
+        """
+        Create Source with given details
+
+        :param list/tuple source: Source details in the form of
+        [<ID>, <SOURCE_NAME>, <PARAMETERS:json>]
+        (<ID>, <SOURCE_NAME>, <PARAMETERS:json>) Or
+        [<SOURCE_NAME>, <PARAMETERS:json>]
+        (<SOURCE_NAME>, <PARAMETERS:json>)
+        :return: dict of
+        {
+            status: True/False,
+            rowCount: 1, # Number of row affected
+            source: [] # Created Sources
+        }
+        """
+        row_count = 0
+        try:
+            with self.connection.cursor() as cursor:
+                if isinstance(source, tuple) and len(source) < 3:
+                    sql = "SELECT max(id) FROM `source`"
+                    logging.debug(sql)
+                    cursor.execute(sql)
+                    lastId = cursor.fetchone()
+                    source = list(source)
+                    if lastId[0] is not None:
+                        source.insert(0, lastId[0] + 1)
+                    else:
+                        source.insert(0, 0)
+                    source = tuple(source)
+                if isinstance(source, list) and len(source) < 3:
+                    sql = "SELECT max(id) FROM `station`"
+                    logging.debug(sql)
+                    cursor.execute(sql)
+                    lastId = cursor.fetchone()
+                    if lastId[0] is not None:
+                        source.insert(0, lastId[0] + 1)
+                    else:
+                        source.insert(0, 0)
+
+                sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
+
+                logging.debug('Create Source: %s', source)
+                row_count = cursor.execute(sql, source)
+                self.connection.commit()
+                logging.debug('Created Source # %s', row_count)
+
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            return {
+                'status': row_count > 0,
+                'row_count': row_count,
+                'source': source
+            }
+
+    def getSource(self, id=0, name=''):
+        """
+        Get existing source
+
+        :param integer id: ID of the source
+        :param string name: Source Name
+        :return: Dict of
+        {
+            id: '',
+            source: '',
+            param: ''
+        }
+        """
+        response = {}
+        try:
+            with self.connection.cursor() as cursor:
+                output_order = []
+                for key in self.source_struct_keys:
+                    output_order.append("`%s` as `%s`" % (key, key))
+                output_order = ','.join(output_order)
+
+                sql = "SELECT %s FROM `source` " % (output_order)
+                if id > 0:
+                    sql += "WHERE id=%s" % (id)
+                elif name:
+                    sql += "WHERE source=%s" % (name)
+                else:
+                    logging.warning('Unable to find source')
+
+                logging.debug('sql (getSource):: %s', sql)
+                cursor.execute(sql)
+                source = cursor.fetchone()
+                for i, value in enumerate(self.source_struct_keys):
+                    response[value] = source[i]
+                logging.debug('source:: %s', response)
+
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            return response
+
+    def deleteSource(self, id=0):
+        """Delete given source from the database
+
+        :param integer id: Source Id
+
+        :return dict: Return with
+        {
+            status: True/False,
+            rowCount: 1, # Number of row affected
+        }
+        """
+        row_count = 0
+        try:
+            with self.connection.cursor() as cursor:
+                if id > 0:
+                    sql = "DELETE FROM `source` WHERE `id`=%s"
+                    row_count = cursor.execute(sql, (id))
+                    self.connection.commit()
+                else:
+                    logging.warning('Unable to find station')
+
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            return {
+                'status': row_count > 0,
+                'row_count': row_count
+            }
 
     def close(self):
         # disconnect from server

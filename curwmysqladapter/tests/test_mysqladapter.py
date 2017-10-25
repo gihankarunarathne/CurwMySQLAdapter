@@ -8,11 +8,12 @@ from glob import glob
 
 import unittest2 as unittest
 
-from curwmysqladapter import mysqladapter, Station
+from curwmysqladapter import MySQLAdapter, Station
+
 
 class MySQLAdapterTest(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUpClass(cls):
         try:
             ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
             CONFIG = json.loads(open(ROOT_DIR + '/CONFIG.json').read())
@@ -20,9 +21,9 @@ class MySQLAdapterTest(unittest.TestCase):
             # Initialize Logger
             logging_config = json.loads(open(ROOT_DIR + '/LOGGING_CONFIG.json').read())
             logging.config.dictConfig(logging_config)
-            self.logger = logging.getLogger('MySQLAdapterTest')
-            self.logger.addHandler(logging.StreamHandler())
-            self.logger.info('setUpClass')
+            cls.logger = logging.getLogger('MySQLAdapterTest')
+            cls.logger.addHandler(logging.StreamHandler())
+            cls.logger.info('setUpClass')
 
             MYSQL_HOST = "localhost"
             MYSQL_USER = "root"
@@ -40,8 +41,8 @@ class MySQLAdapterTest(unittest.TestCase):
             if 'MYSQL_PASSWORD' in CONFIG:
                 MYSQL_PASSWORD = CONFIG['MYSQL_PASSWORD']
 
-            self.adapter = mysqladapter(host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, db=MYSQL_DB)
-            self.eventIds = []
+            cls.adapter = MySQLAdapter(host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, db=MYSQL_DB)
+            cls.eventIds = []
 
             # Store Rainfall Data
             stations = ['Colombo', 'Hanwella', 'Norwood']
@@ -57,19 +58,19 @@ class MySQLAdapterTest(unittest.TestCase):
                 'end_date': '2017-05-03 23:00:00'
             }
             RAINFALL_DIR = os.path.join(ROOT_DIR, 'data', 'Rainfall')
-            self.logger.debug(RAINFALL_DIR)
+            cls.logger.debug(RAINFALL_DIR)
             for station in stations:
-                self.logger.info('Inserting Rainfall at %s', station)
+                cls.logger.info('Inserting Rainfall at %s', station)
                 for file in glob(os.path.join(RAINFALL_DIR, station + '*.csv')):
                     timeseries = csv.reader(open(file, 'r'), delimiter=' ', skipinitialspace=True)
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
                     dateArr = filename.split('.')[0].split('-')
-                    self.logger.debug('-'.join(dateArr[1:]))
+                    cls.logger.debug('-'.join(dateArr[1:]))
                     startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
                     endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    self.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
+                    cls.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
                     stationMeta = dict(metaData)
                     stationMeta['station'] = station
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
@@ -77,22 +78,22 @@ class MySQLAdapterTest(unittest.TestCase):
 
                     for i in range(0, 3):
                         stationMeta['type'] = types[i]
-                        eventId = self.adapter.getEventId(stationMeta)
+                        eventId = cls.adapter.get_event_id(stationMeta)
                         if eventId is None:
-                            eventId = self.adapter.createEventId(stationMeta)
-                            self.logger.debug('HASH SHA256 created: %s', eventId)
+                            eventId = cls.adapter.create_event_id(stationMeta)
+                            cls.logger.debug('HASH SHA256 created: %s', eventId)
                         else:
-                            self.logger.debug('HASH SHA256 exists: %s', eventId)
+                            cls.logger.debug('HASH SHA256 exists: %s', eventId)
 
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in self.eventIds:
-                            self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId,
+                        if eventId not in cls.eventIds:
+                            cls.eventIds.append(eventId)
+                        rowCount = cls.adapter.insertTimeseries(eventId,
                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
-                                                                 True)
-                        self.logger.debug('%s rows inserted.', rowCount)
-            self.logger.info('Inserted Rainfall data.')
+                                                                True)
+                        cls.logger.debug('%s rows inserted.', rowCount)
+            cls.logger.info('Inserted Rainfall data.')
 
             # Store Discharge Data
             stations = ['Hanwella']
@@ -116,17 +117,17 @@ class MySQLAdapterTest(unittest.TestCase):
             }
             DISCHARGE_DIR = os.path.join(ROOT_DIR, 'data', 'Discharge')
             for station in stations:
-                self.logger.info('Inserting Discharges at %s', station)
+                cls.logger.info('Inserting Discharges at %s', station)
                 for file in glob(os.path.join(DISCHARGE_DIR, station + '*.csv')):
                     timeseries = csv.reader(open(file, 'r'), delimiter=',', skipinitialspace=True)
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
                     dateArr = filename.split('.')[0].split('-')
-                    self.logger.debug('-'.join(dateArr[1:]))
+                    cls.logger.debug('-'.join(dateArr[1:]))
                     startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
                     endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    self.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
+                    cls.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
                     stationMeta = dict(metaData)
                     stationMeta['station'] = station
                     stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
@@ -134,22 +135,22 @@ class MySQLAdapterTest(unittest.TestCase):
 
                     for i in range(0, 6):
                         stationMeta['type'] = types[i]
-                        eventId = self.adapter.getEventId(stationMeta)
+                        eventId = cls.adapter.get_event_id(stationMeta)
                         if eventId is None:
-                            eventId = self.adapter.createEventId(stationMeta)
-                            self.logger.debug('HASH SHA256 created: %s', eventId)
+                            eventId = cls.adapter.create_event_id(stationMeta)
+                            cls.logger.debug('HASH SHA256 created: %s', eventId)
                         else:
-                            self.logger.debug('HASH SHA256 exists: %s', eventId)
+                            cls.logger.debug('HASH SHA256 exists: %s', eventId)
 
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in self.eventIds:
-                            self.eventIds.append(eventId)
-                        rowCount = self.adapter.insertTimeseries(eventId,
+                        if eventId not in cls.eventIds:
+                            cls.eventIds.append(eventId)
+                        rowCount = cls.adapter.insertTimeseries(eventId,
                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
-                                                                 True)
-                        self.logger.debug('%s rows inserted.', rowCount)
-            self.logger.info("Inserted Discharge data.")
+                                                                True)
+                        cls.logger.debug('%s rows inserted.', rowCount)
+            cls.logger.info("Inserted Discharge data.")
 
 
         except Exception as e:
@@ -159,8 +160,8 @@ class MySQLAdapterTest(unittest.TestCase):
     def tearDownClass(self):
         print('tearDownClass')
         try:
-            for id in self.eventIds:
-                self.adapter.deleteTimeseries(id)
+            for eventId in self.eventIds:
+                self.adapter.deleteTimeseries(eventId)
             self.adapter.close()
         except Exception as e:
             traceback.print_exc()
@@ -180,7 +181,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'source': 'HEC-HMS',
             'name': 'Forecast Test'
         }
-        eventId = self.adapter.getEventId(metaData)
+        eventId = self.adapter.get_event_id(metaData)
         self.assertTrue(isinstance(eventId, str))
         self.assertTrue(eventId.isalnum())
 
@@ -193,7 +194,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'source': 'HEC-HMS',
             'name': 'Forecast Test Not Exists'
         }
-        eventId = self.adapter.getEventId(metaData)
+        eventId = self.adapter.get_event_id(metaData)
         self.assertTrue(eventId is None)
 
     def test_getEventIdsWithEmptyQuery(self):
@@ -284,6 +285,13 @@ class MySQLAdapterTest(unittest.TestCase):
         station = self.adapter.getStation(query)
         self.assertEqual(len(station.keys()), 7)
         self.assertTrue(isinstance(station, dict))
+
+    def test_getUnavailableStation(self):
+        query = {
+            'name': 'Unavailable'
+        }
+        station = self.adapter.getStation(query)
+        self.assertEqual(station, None)
 
     def test_getStationsInArea(self):
         query = {

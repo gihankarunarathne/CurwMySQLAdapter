@@ -64,11 +64,11 @@ metaData = {
     'start_date': '2017-05-01 00:00:00',
     'end_date': '2017-05-03 23:00:00'
 }
-eventId = adapter.getEventId(metaData)
+eventId = adapter.get_event_id(metaData)
 
 if eventId is None :
     print('eventId is None. Creating a New.')
-    eventId = adapter.createEventId(metaData)
+    eventId = adapter.create_event_id(metaData)
     rowCount = adapter.insertTimeseries(eventId, timeseries)
     print('%s rows inserted.' % rowCount)
 else:

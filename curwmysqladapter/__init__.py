@@ -1,2 +1,2 @@
-from .mysqladapter import mysqladapter
+from .mysqladapter import MySQLAdapter
 from .station import Station

@@ -8,7 +8,8 @@ import traceback
 import pymysql.cursors
 from .station import Station
 
-class mysqladapter:
+
+class MySQLAdapter:
     def __init__(self, host="localhost", user="root", password="", db="curw"):
         """Initialize Database Connection"""
         # Open database connection
@@ -56,22 +57,22 @@ class mysqladapter:
         }
         self.source_struct_keys = self.source_struct.keys()
 
-    def getMetaStruct(self):
+    def get_meta_struct(self):
         """Get the Meta Data Structure of hash value
         NOTE: start_date and end_date is not using for hashing
         """
         return self.meta_struct
 
-    def getStationStruct(self):
+    def get_station_struct(self):
         """Get the Station Data Structure
         """
         return self.station_struct
 
-    def getEventId(self, metaData):
+    def get_event_id(self, meta_data):
         """Get the event id for given meta data
         NOTE: Only 'station', 'variable', 'unit', 'type', 'source', 'name' fields use for generate hash value
 
-        :param dict metaData: Dict of Meta Data that use to create the hash
+        :param dict meta_data: Dict of Meta Data that use to create the hash
         Meta Data should contains all required following keys s.t.
         {
             'station': 'Hanwella',
@@ -84,34 +85,34 @@ class mysqladapter:
 
         :return str: sha256 hash value in hex format (length of 64 characters). If does not exists, return None.
         """
-        eventId = None
+        event_id = None
         m = hashlib.sha256()
 
-        hashData = dict(self.meta_struct)
+        hash_data = dict(self.meta_struct)
         for i, value in enumerate(self.meta_struct_keys):
-            hashData[value] = metaData[value]
-        logging.debug('hash Data:: %s', hashData)
+            hash_data[value] = meta_data[value]
+        logging.debug('hash Data:: %s', hash_data)
 
-        m.update(json.dumps(hashData, sort_keys=True).encode("ascii"))
-        possibleId = m.hexdigest()
+        m.update(json.dumps(hash_data, sort_keys=True).encode("ascii"))
+        possible_id = m.hexdigest()
         try:
             with self.connection.cursor() as cursor:
                 sql = "SELECT 1 FROM `run` WHERE `id`=%s"
 
-                cursor.execute(sql, possibleId)
-                isExist = cursor.fetchone()
-                if isExist is not None:
-                    eventId = possibleId
+                cursor.execute(sql, possible_id)
+                is_exist = cursor.fetchone()
+                if is_exist is not None:
+                    event_id = possible_id
         except Exception as e:
             traceback.print_exc()
         finally:
-            return eventId
+            return event_id
 
-    def createEventId(self, metaData):
+    def create_event_id(self, meta_data):
         """
         Create a new event id for given meta data
 
-        :param dict metaData: Dict of Meta Data that use to create the hash
+        :param dict meta_data: Dict of Meta Data that use to create the hash
         Meta Data should contains all of following keys s.t.
         {
             'station': 'Hanwella',
@@ -125,52 +126,53 @@ class mysqladapter:
 
         :return str: sha256 hash value in hex format (length of 64 characters)
         """
-        hashData = dict(self.meta_struct)
+        hash_data = dict(self.meta_struct)
         for i, value in enumerate(self.meta_struct_keys):
-            hashData[value] = metaData[value]
+            hash_data[value] = meta_data[value]
 
         m = hashlib.sha256()
-        m.update(json.dumps(hashData, sort_keys=True).encode("ascii"))
-        eventId = m.hexdigest()
+
+        m.update(json.dumps(hash_data, sort_keys=True).encode("ascii"))
+        event_id = m.hexdigest()
         try:
             with self.connection.cursor() as cursor:
                 sql = [
-                    "SELECT `id` as `stationId` FROM `station` WHERE `name`=%s",
-                    "SELECT `id` as `variableId` FROM `variable` WHERE `variable`=%s",
-                    "SELECT `id` as `unitId` FROM `unit` WHERE `unit`=%s",
-                    "SELECT `id` as `typeId` FROM `type` WHERE `type`=%s",
-                    "SELECT `id` as `sourceId` FROM `source` WHERE `source`=%s"
+                    "SELECT `id` as `station_id` FROM `station` WHERE `name`=%s",
+                    "SELECT `id` as `variable_id` FROM `variable` WHERE `variable`=%s",
+                    "SELECT `id` as `unit_id` FROM `unit` WHERE `unit`=%s",
+                    "SELECT `id` as `type_id` FROM `type` WHERE `type`=%s",
+                    "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
                 ]
 
-                cursor.execute(sql[0], (metaData['station']))
-                stationId = cursor.fetchone()[0]
-                cursor.execute(sql[1], (metaData['variable']))
-                variableId = cursor.fetchone()[0]
-                cursor.execute(sql[2], (metaData['unit']))
-                unitId = cursor.fetchone()[0]
-                cursor.execute(sql[3], (metaData['type']))
-                typeId = cursor.fetchone()[0]
-                cursor.execute(sql[4], (metaData['source']))
-                sourceId = cursor.fetchone()[0]
+                cursor.execute(sql[0], (meta_data['station']))
+                station_id = cursor.fetchone()[0]
+                cursor.execute(sql[1], (meta_data['variable']))
+                variable_id = cursor.fetchone()[0]
+                cursor.execute(sql[2], (meta_data['unit']))
+                unit_id = cursor.fetchone()[0]
+                cursor.execute(sql[3], (meta_data['type']))
+                type_id = cursor.fetchone()[0]
+                cursor.execute(sql[4], (meta_data['source']))
+                source_id = cursor.fetchone()[0]
 
                 sql = "INSERT INTO `run` (`id`, `name`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
-                sqlValues = (
-                    eventId,
-                    metaData['name'],
-                    stationId,
-                    variableId,
-                    unitId,
-                    typeId,
-                    sourceId
+                sql_values = (
+                    event_id,
+                    meta_data['name'],
+                    station_id,
+                    variable_id,
+                    unit_id,
+                    type_id,
+                    source_id
                 )
-                cursor.execute(sql, sqlValues)
+                cursor.execute(sql, sql_values)
                 self.connection.commit()
 
         except Exception as e:
             traceback.print_exc()
 
-        return eventId
+        return event_id
 
     def insertTimeseries(self, eventId, timeseries, upsert=False):
         """Insert timeseries into the db against given eventId
@@ -410,40 +412,41 @@ class mysqladapter:
         [<Station.CUrW>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
         (<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>)
         """
-        rowCount = 0
+        row_count = 0
         try:
             with self.connection.cursor() as cursor:
                 if isinstance(station, tuple) and isinstance(station[0], Station):
-                    sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
+                    sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" \
+                          % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
                     cursor.execute(sql)
-                    lastId = cursor.fetchone()
+                    last_id = cursor.fetchone()
                     station = list(station)
-                    if lastId[0] is not None:
-                        station[0] = lastId[0] + 1
+                    if last_id[0] is not None:
+                        station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
                 if isinstance(station, list) and isinstance(station[0], Station):
                     sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
                     cursor.execute(sql)
-                    lastId = cursor.fetchone()
-                    if lastId[0] is not None:
-                        station[0] = lastId[0] + 1
+                    last_id = cursor.fetchone()
+                    if last_id[0] is not None:
+                        station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
 
                 sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 logging.debug('Create Station: %s', station)
-                rowCount = cursor.execute(sql, station)
+                row_count = cursor.execute(sql, station)
                 self.connection.commit()
-                logging.debug('Created Station # %s', rowCount)
+                logging.debug('Created Station # %s', row_count)
 
         except Exception as e:
             traceback.print_exc()
         finally:
-            return rowCount
+            return row_count
 
     def getStation(self, query={}):
         """
@@ -457,6 +460,7 @@ class mysqladapter:
         }
         :return Object: Details of matching station. If not found empty Object will be return.
         """
+        response = None
         try:
             with self.connection.cursor() as cursor:
                 outPutOrder = []
@@ -478,14 +482,16 @@ class mysqladapter:
                 logging.debug('sql (getStation):: %s', sql)
                 cursor.execute(sql)
                 station = cursor.fetchone()
-                response = {}
-                for i, value in enumerate(self.station_struct_keys):
-                    response[value] = station[i]
-                logging.debug('station:: %s', response)
-                return response
+                if station is not None:
+                    response = {}
+                    for i, value in enumerate(self.station_struct_keys):
+                        response[value] = station[i]
+                    logging.debug('station:: %s', response)
 
         except Exception as e:
             traceback.print_exc()
+        finally:
+            return response
 
     def deleteStation(self, id=0, stationId=''):
         """Delete given station from the database

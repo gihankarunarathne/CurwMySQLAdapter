@@ -174,10 +174,10 @@ class MySQLAdapter:
 
         return event_id
 
-    def insertTimeseries(self, eventId, timeseries, upsert=False):
-        """Insert timeseries into the db against given eventId
+    def insert_timeseries(self, event_id, timeseries, upsert=False):
+        """Insert timeseries into the db against given event_id
 
-        :param string eventId: Hex Hash value that need to store timeseries against.
+        :param string event_id: Hex Hash value that need to store timeseries against.
 
         :param list   timeseries: List of time series of time & value list ['2017-05-01 00:00:00', 1.08]
         E.g. [ ['2017-05-01 00:00:00', 1.08], ['2017-05-01 01:00:00', 2.04], ... ]
@@ -188,7 +188,7 @@ class MySQLAdapter:
 
         :return int: Affected row count.
         """
-        rowCount = 0
+        row_count = 0
         try:
             with self.connection.cursor() as cursor:
                 sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s)"
@@ -197,41 +197,41 @@ class MySQLAdapter:
                     sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
                 # Refer to performance in copy list : https://stackoverflow.com/a/2612990/1461060
-                timeseriesCopy = []
-                for item in timeseries: timeseriesCopy.append(item[:])
+                timeseries_copy = []
+                for item in timeseries: timeseries_copy.append(item[:])
 
-                newTimeseries = []
-                for t in [i for i in timeseriesCopy]:
+                new_timeseries = []
+                for t in [i for i in timeseries_copy]:
                     if len(t) > 1:
                         # Format value into 3 decimal palaces
                         t[1] = round(float(t[1]), 3)
                         # Insert EventId in font of timestamp, value list
-                        t.insert(0, eventId)
-                        newTimeseries.append(t)
+                        t.insert(0, event_id)
+                        new_timeseries.append(t)
                     else:
                         logging.warning('Invalid timeseries data:: %s', t)
 
-                logging.debug(newTimeseries[:10])
-                rowCount = cursor.executemany(sql, (newTimeseries))
+                logging.debug(new_timeseries[:10])
+                row_count = cursor.executemany(sql, new_timeseries)
                 self.connection.commit()
 
                 sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), `end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
-                cursor.execute(sql, (eventId, eventId, eventId))
+                cursor.execute(sql, (event_id, event_id, event_id))
                 self.connection.commit()
 
         except Exception as e:
             traceback.print_exc()
         finally:
-            return rowCount
+            return row_count
 
-    def deleteTimeseries(self, eventId):
+    def delete_timeseries(self, eventId):
         """Delete given timeseries from the database
 
         :param string eventId: Hex Hash value that need to delete timeseries against
 
         :return int: Affected row count.
         """
-        rowCount = 0
+        row_count = 0
         try:
             with self.connection.cursor() as cursor:
                 sql = [
@@ -243,18 +243,18 @@ class MySQLAdapter:
                 in `data` table
                 '''
 
-                rowCount = cursor.execute(sql[0], (eventId))
+                row_count = cursor.execute(sql[0], (eventId))
                 self.connection.commit()
 
         except Exception as e:
             traceback.print_exc()
         finally:
-            return rowCount
+            return row_count
 
-    def getEventIds(self, metaQuery={}, opts={}):
+    def get_event_ids(self, meta_query={}, opts={}):
         """Get event ids set according to given meta data
 
-        :param dict metaQuery: Dict of Meta Query that use to search the hash
+        :param dict meta_query: Dict of Meta Query that use to search the hash
         event ids. It may contain any of following keys s.t.
         {
             'station': 'Hanwella', // Or a list ['Hanwella', 'Colombo']
@@ -282,42 +282,42 @@ class MySQLAdapter:
                 opts['skip'] = 0
 
             with self.connection.cursor() as cursor:
-                outOrder = []
-                sortedKeys = ['id'] + self.meta_struct_keys
-                for key in sortedKeys:
-                    outOrder.append("`%s` as `%s`" % (key, key))
-                outOrder = ','.join(outOrder)
+                out_order = []
+                sorted_keys = ['id'] + self.meta_struct_keys
+                for key in sorted_keys:
+                    out_order.append("`%s` as `%s`" % (key, key))
+                out_order = ','.join(out_order)
 
-                sql = "SELECT %s FROM `run_view` " % (outOrder)
-                if metaQuery:
+                sql = "SELECT %s FROM `run_view` " % out_order
+                if meta_query:
                     sql += "WHERE "
                     cnt = 0
-                    for key in metaQuery:
+                    for key in meta_query:
                         if cnt:
                             sql += "AND "
 
                         # TODO: Need to update start and end date of timeseries
                         if key is 'from':
-                            # sql += "`%s`>=\"%s\" " % ('start_date', metaQuery[key])
+                            # sql += "`%s`>=\"%s\" " % ('start_date', meta_query[key])
                             sql = sql[:-4]
                         elif key is 'to':
-                            # sql += "`%s`<=\"%s\" " % ('start_date', metaQuery[key])
+                            # sql += "`%s`<=\"%s\" " % ('start_date', meta_query[key])
                             sql = sql[:-4]
-                        elif key is 'station' and isinstance(metaQuery[key], list):
-                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in metaQuery[key]))
+                        elif key is 'station' and isinstance(meta_query[key], list):
+                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in meta_query[key]))
                         else:
-                            sql += "`%s`=\"%s\" " % (key, metaQuery[key])
+                            sql += "`%s`=\"%s\" " % (key, meta_query[key])
                         cnt += 1
 
-                logging.debug('sql (getEventIds):: %s', sql)
+                logging.debug('sql (get_event_ids):: %s', sql)
                 cursor.execute(sql)
                 events = cursor.fetchmany(opts.get('limit'))
-                logging.debug('Events (getEventIds):: %s', events)
+                logging.debug('Events (get_event_ids):: %s', events)
                 response = []
                 for event in events:
                     meta_struct = dict(self.meta_struct)
-                    for i, value in enumerate(sortedKeys):
-                        meta_struct[sortedKeys[i]] = event[i]
+                    for i, value in enumerate(sorted_keys):
+                        meta_struct[sorted_keys[i]] = event[i]
                     response.append(meta_struct)
 
                 return response
@@ -325,10 +325,10 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
 
-    def retrieveTimeseries(self, metaQuery=[], opts={}):
+    def retrieve_timeseries(self, meta_query=[], opts={}):
         """Get timeseries
 
-        :param (dict | list) metaQuery: If Meta Query is a Dict, then it'll use to search the hash
+        :param (dict | list) meta_query: If Meta Query is a Dict, then it'll use to search the hash
         event ids. It may contain any of following keys s.t.
         {
             'station': 'Hanwella',
@@ -363,28 +363,28 @@ class MySQLAdapter:
                 opts['skip'] = 0
 
             with self.connection.cursor() as cursor:
-                if isinstance(metaQuery, dict):
-                    eventIds = self.getEventIds(metaQuery)
+                if isinstance(meta_query, dict):
+                    event_ids = self.get_event_ids(meta_query)
                 else:
-                    eventIds = list(metaQuery)
+                    event_ids = list(meta_query)
 
-                logging.debug('eventIds :: %s', eventIds)
+                logging.debug('event_ids :: %s', event_ids)
                 response = []
-                for event in eventIds:
+                for event in event_ids:
                     if isinstance(event, dict):
-                        eventId = event.get('id')
+                        event_id = event.get('id')
                     else:
-                        eventId = event
-                        event = {'id': eventId}
+                        event_id = event
+                        event = {'id': event_id}
 
-                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=\"%s\" " % (eventId)
+                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=\"%s\" " % event_id
 
                     if opts.get('from'):
                         sql += "AND `%s`>=\"%s\" " % ('time', opts['from'])
                     if opts.get('to'):
                         sql += "AND `%s`<=\"%s\" " % ('time', opts['to'])
 
-                    logging.debug('sql (retrieveTimeseries):: %s', sql)
+                    logging.debug('sql (retrieve_timeseries):: %s', sql)
                     cursor.execute(sql)
                     timeseries = cursor.fetchall()
                     event['timeseries'] = [[time, value] for time, value in timeseries]
@@ -394,7 +394,7 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
 
-    def createStation(self, station=[]):
+    def create_station(self, station=[]):
         """Insert stations into the database
 
          Station ids ranged as below;
@@ -448,7 +448,7 @@ class MySQLAdapter:
         finally:
             return row_count
 
-    def getStation(self, query={}):
+    def get_station(self, query={}):
         """
         Get matching station details for given query.
 
@@ -463,12 +463,12 @@ class MySQLAdapter:
         response = None
         try:
             with self.connection.cursor() as cursor:
-                outPutOrder = []
+                out_put_order = []
                 for key in self.station_struct_keys:
-                    outPutOrder.append("`%s` as `%s`" % (key, key))
-                outPutOrder = ','.join(outPutOrder)
+                    out_put_order.append("`%s` as `%s`" % (key, key))
+                out_put_order = ','.join(out_put_order)
 
-                sql = "SELECT %s FROM `station` " % (outPutOrder)
+                sql = "SELECT %s FROM `station` " % out_put_order
                 if query:
                     sql += "WHERE "
                     cnt = 0
@@ -479,7 +479,7 @@ class MySQLAdapter:
                         sql += "`%s`=\"%s\" " % (key, query[key])
                         cnt += 1
 
-                logging.debug('sql (getStation):: %s', sql)
+                logging.debug('sql (get_station):: %s', sql)
                 cursor.execute(sql)
                 station = cursor.fetchone()
                 if station is not None:
@@ -493,25 +493,25 @@ class MySQLAdapter:
         finally:
             return response
 
-    def deleteStation(self, id=0, stationId=''):
+    def delete_station(self, id=0, station_id=''):
         """Delete given station from the database
 
         :param integer id: Station Id
-        :param string stationId: Station Id
+        :param string station_id: Station Id
 
         :return int: Affected row count.
         """
-        rowCount = 0
+        row_count = 0
         try:
             with self.connection.cursor() as cursor:
                 if id > 0:
                     sql = "DELETE FROM `station` WHERE `id`=%s"
-                    rowCount = cursor.execute(sql, (id))
+                    row_count = cursor.execute(sql, (id))
                     self.connection.commit()
-                elif stationId:
+                elif station_id:
                     sql = "DELETE FROM `station` WHERE `stationId`=%s"
 
-                    rowCount = cursor.execute(sql, (stationId))
+                    row_count = cursor.execute(sql, (station_id))
                     self.connection.commit()
                 else:
                     logging.warning('Unable to find station')
@@ -519,9 +519,9 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
         finally:
-            return rowCount
+            return row_count
 
-    def getStations(self, query={}):
+    def get_stations(self, query={}):
         """
         Get matching stations details for given query.
 
@@ -530,7 +530,7 @@ class MySQLAdapter:
         """
         return []
 
-    def getStationsInArea(self, query={}):
+    def get_stations_in_area(self, query={}):
         """Get stations
 
         :param dict query: Query for retrieve stations. It may contain any of following keys s.t.
@@ -547,13 +547,13 @@ class MySQLAdapter:
         """
         try:
             with self.connection.cursor() as cursor:
-                outOrder = []
-                sortedKeys = sorted(self.station_struct.keys())
-                for key in sortedKeys:
-                    outOrder.append("`%s` as `%s`" % (key, key))
-                outOrder = ','.join(outOrder)
+                out_order = []
+                sorted_keys = sorted(self.station_struct.keys())
+                for key in sorted_keys:
+                    out_order.append("`%s` as `%s`" % (key, key))
+                out_order = ','.join(out_order)
 
-                sql = "SELECT %s FROM `station` " % (outOrder)
+                sql = "SELECT %s FROM `station` " % (out_order)
                 if query:
                     sql += "WHERE "
                     cnt = 0
@@ -571,21 +571,21 @@ class MySQLAdapter:
                             sql += "`%s`<=\"%s\" " % ('longitude', query[key])
                         cnt += 1
 
-                logging.debug('sql (getStations):: %s', sql)
+                logging.debug('sql (get_stations):: %s', sql)
                 cursor.execute(sql)
                 stations = cursor.fetchall()
                 response = []
                 for station in stations:
                     station_struct = dict(self.station_struct)
-                    for i, value in enumerate(sortedKeys):
-                        station_struct[sortedKeys[i]] = station[i]
+                    for i, value in enumerate(sorted_keys):
+                        station_struct[sorted_keys[i]] = station[i]
                     response.append(station_struct)
 
                 return response
         except Exception as e:
             traceback.print_exc()
 
-    def createSource(self, source=[]):
+    def create_source(self, source=[]):
         """
         Create Source with given details
 
@@ -608,10 +608,10 @@ class MySQLAdapter:
                     sql = "SELECT max(id) FROM `source`"
                     logging.debug(sql)
                     cursor.execute(sql)
-                    lastId = cursor.fetchone()
+                    last_id = cursor.fetchone()
                     source = list(source)
-                    if lastId[0] is not None:
-                        source.insert(0, lastId[0] + 1)
+                    if last_id[0] is not None:
+                        source.insert(0, last_id[0] + 1)
                     else:
                         source.insert(0, 0)
                     source = tuple(source)
@@ -619,9 +619,9 @@ class MySQLAdapter:
                     sql = "SELECT max(id) FROM `station`"
                     logging.debug(sql)
                     cursor.execute(sql)
-                    lastId = cursor.fetchone()
-                    if lastId[0] is not None:
-                        source.insert(0, lastId[0] + 1)
+                    last_id = cursor.fetchone()
+                    if last_id[0] is not None:
+                        source.insert(0, last_id[0] + 1)
                     else:
                         source.insert(0, 0)
 
@@ -641,7 +641,7 @@ class MySQLAdapter:
                 'source': source
             }
 
-    def getSource(self, id=0, name=''):
+    def get_source(self, id=0, name=''):
         """
         Get existing source
 
@@ -662,15 +662,15 @@ class MySQLAdapter:
                     output_order.append("`%s` as `%s`" % (key, key))
                 output_order = ','.join(output_order)
 
-                sql = "SELECT %s FROM `source` " % (output_order)
+                sql = "SELECT %s FROM `source` " % output_order
                 if id > 0:
-                    sql += "WHERE id=%s" % (id)
+                    sql += "WHERE id=%s" % id
                 elif name:
-                    sql += "WHERE source=%s" % (name)
+                    sql += "WHERE source=%s" % name
                 else:
                     logging.warning('Unable to find source')
 
-                logging.debug('sql (getSource):: %s', sql)
+                logging.debug('sql (get_source):: %s', sql)
                 cursor.execute(sql)
                 source = cursor.fetchone()
                 for i, value in enumerate(self.source_struct_keys):
@@ -682,7 +682,7 @@ class MySQLAdapter:
         finally:
             return response
 
-    def deleteSource(self, id=0):
+    def delete_source(self, id=0):
         """Delete given source from the database
 
         :param integer id: Source Id
@@ -698,7 +698,7 @@ class MySQLAdapter:
             with self.connection.cursor() as cursor:
                 if id > 0:
                     sql = "DELETE FROM `source` WHERE `id`=%s"
-                    row_count = cursor.execute(sql, (id))
+                    row_count = cursor.execute(sql, id)
                     self.connection.commit()
                 else:
                     logging.warning('Unable to find station')

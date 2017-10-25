@@ -15,11 +15,11 @@ class MySQLAdapterTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         try:
-            ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
-            CONFIG = json.loads(open(ROOT_DIR + '/CONFIG.json').read())
+            root_dir = os.path.dirname(os.path.realpath(__file__))
+            config = json.loads(open(root_dir + '/CONFIG.json').read())
 
             # Initialize Logger
-            logging_config = json.loads(open(ROOT_DIR + '/LOGGING_CONFIG.json').read())
+            logging_config = json.loads(open(root_dir + '/LOGGING_CONFIG.json').read())
             logging.config.dictConfig(logging_config)
             cls.logger = logging.getLogger('MySQLAdapterTest')
             cls.logger.addHandler(logging.StreamHandler())
@@ -32,14 +32,14 @@ class MySQLAdapterTest(unittest.TestCase):
 
             DAY_INTERVAL = 24
 
-            if 'MYSQL_HOST' in CONFIG:
-                MYSQL_HOST = CONFIG['MYSQL_HOST']
-            if 'MYSQL_USER' in CONFIG:
-                MYSQL_USER = CONFIG['MYSQL_USER']
-            if 'MYSQL_DB' in CONFIG:
-                MYSQL_DB = CONFIG['MYSQL_DB']
-            if 'MYSQL_PASSWORD' in CONFIG:
-                MYSQL_PASSWORD = CONFIG['MYSQL_PASSWORD']
+            if 'MYSQL_HOST' in config:
+                MYSQL_HOST = config['MYSQL_HOST']
+            if 'MYSQL_USER' in config:
+                MYSQL_USER = config['MYSQL_USER']
+            if 'MYSQL_DB' in config:
+                MYSQL_DB = config['MYSQL_DB']
+            if 'MYSQL_PASSWORD' in config:
+                MYSQL_PASSWORD = config['MYSQL_PASSWORD']
 
             cls.adapter = MySQLAdapter(host=MYSQL_HOST, user=MYSQL_USER, password=MYSQL_PASSWORD, db=MYSQL_DB)
             cls.eventIds = []
@@ -57,7 +57,7 @@ class MySQLAdapterTest(unittest.TestCase):
                 'start_date': '2017-05-01 00:00:00',
                 'end_date': '2017-05-03 23:00:00'
             }
-            RAINFALL_DIR = os.path.join(ROOT_DIR, 'data', 'Rainfall')
+            RAINFALL_DIR = os.path.join(root_dir, 'data', 'Rainfall')
             cls.logger.debug(RAINFALL_DIR)
             for station in stations:
                 cls.logger.info('Inserting Rainfall at %s', station)
@@ -89,9 +89,9 @@ class MySQLAdapterTest(unittest.TestCase):
                         #     print(l)
                         if eventId not in cls.eventIds:
                             cls.eventIds.append(eventId)
-                        rowCount = cls.adapter.insertTimeseries(eventId,
+                        rowCount = cls.adapter.insert_timeseries(eventId,
                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
-                                                                True)
+                                                                 True)
                         cls.logger.debug('%s rows inserted.', rowCount)
             cls.logger.info('Inserted Rainfall data.')
 
@@ -115,7 +115,7 @@ class MySQLAdapterTest(unittest.TestCase):
                 'start_date': '2017-05-01 00:00:00',
                 'end_date': '2017-05-03 23:00:00'
             }
-            DISCHARGE_DIR = os.path.join(ROOT_DIR, 'data', 'Discharge')
+            DISCHARGE_DIR = os.path.join(root_dir, 'data', 'Discharge')
             for station in stations:
                 cls.logger.info('Inserting Discharges at %s', station)
                 for file in glob(os.path.join(DISCHARGE_DIR, station + '*.csv')):
@@ -146,9 +146,9 @@ class MySQLAdapterTest(unittest.TestCase):
                         #     print(l)
                         if eventId not in cls.eventIds:
                             cls.eventIds.append(eventId)
-                        rowCount = cls.adapter.insertTimeseries(eventId,
+                        rowCount = cls.adapter.insert_timeseries(eventId,
                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
-                                                                True)
+                                                                 True)
                         cls.logger.debug('%s rows inserted.', rowCount)
             cls.logger.info("Inserted Discharge data.")
 
@@ -161,7 +161,7 @@ class MySQLAdapterTest(unittest.TestCase):
         print('tearDownClass')
         try:
             for eventId in self.eventIds:
-                self.adapter.deleteTimeseries(eventId)
+                self.adapter.delete_timeseries(eventId)
             self.adapter.close()
         except Exception as e:
             traceback.print_exc()
@@ -198,7 +198,7 @@ class MySQLAdapterTest(unittest.TestCase):
         self.assertTrue(eventId is None)
 
     def test_getEventIdsWithEmptyQuery(self):
-        response = self.adapter.getEventIds()
+        response = self.adapter.get_event_ids()
         self.assertEqual(len(response), 15)
 
     def test_getEventIdsForGivenStation(self):
@@ -207,9 +207,9 @@ class MySQLAdapterTest(unittest.TestCase):
             'variable': 'Precipitation',
             'type': 'Forecast-0-d',
         }
-        response = self.adapter.getEventIds(metaQuery)
+        response = self.adapter.get_event_ids(metaQuery)
         self.assertEqual(len(response), 1)
-        timeseries = self.adapter.retrieveTimeseries(response)
+        timeseries = self.adapter.retrieve_timeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_getEventIdsForListOfStations(self):
@@ -218,9 +218,9 @@ class MySQLAdapterTest(unittest.TestCase):
             'variable': 'Precipitation',
             'type': 'Forecast-0-d',
         }
-        response = self.adapter.getEventIds(metaQuery)
+        response = self.adapter.get_event_ids(metaQuery)
         self.assertEqual(len(response), 2)
-        timeseries = self.adapter.retrieveTimeseries(response)
+        timeseries = self.adapter.retrieve_timeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_retrieveTimeseriesFromToDate(self):
@@ -233,16 +233,16 @@ class MySQLAdapterTest(unittest.TestCase):
             'from': '2017-05-31 00:00:00',
             'to': '2017-06-01 23:00:00'
         }
-        timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
+        timeseries = self.adapter.retrieve_timeseries(metaQuery, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 1)
 
     def test_createStation(self):
         station = (Station.CUrW, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
         self.logger.info(station)
-        rowCount = self.adapter.createStation(station)
+        rowCount = self.adapter.create_station(station)
         self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.deleteStation(stationId=station[1])
+        rowCount = self.adapter.delete_station(station_id=station[1])
         self.assertEqual(rowCount, 1)
 
     def test_createStationWithPublic(self):
@@ -250,39 +250,39 @@ class MySQLAdapterTest(unittest.TestCase):
         station2 = (Station.Public, 'curw_test_station2', 'Test Station 2', 7.111666668, 80.14983334, 0, "Testing Adapter")
         # Create first station
         self.logger.info(station)
-        rowCount = self.adapter.createStation(station)
+        rowCount = self.adapter.create_station(station)
         self.assertEqual(rowCount, 1)
         # Create second station
         self.logger.info(station2)
-        rowCount = self.adapter.createStation(station2)
+        rowCount = self.adapter.create_station(station2)
         self.assertEqual(rowCount, 1)
 
-        rowCount = self.adapter.deleteStation(stationId=station[1])
+        rowCount = self.adapter.delete_station(station_id=station[1])
         self.assertEqual(rowCount, 1)
-        rowCount2 = self.adapter.deleteStation(stationId=station2[1])
+        rowCount2 = self.adapter.delete_station(station_id=station2[1])
         self.assertEqual(rowCount2, 1)
 
     def test_createStationWithList(self):
         station = [Station.Satellite, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
-        rowCount = self.adapter.createStation(station)
+        rowCount = self.adapter.create_station(station)
         self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.deleteStation(stationId=station[1])
+        rowCount = self.adapter.delete_station(station_id=station[1])
         self.assertEqual(rowCount, 1)
 
     def test_createStationWithGivenId(self):
         station = [110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
-        rowCount = self.adapter.createStation(station)
+        rowCount = self.adapter.create_station(station)
         self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.deleteStation(station[0])
+        rowCount = self.adapter.delete_station(station[0])
         self.assertEqual(rowCount, 1)
 
     def test_getStationByName(self):
         query = {
             'name': 'Hanwella'
         }
-        station = self.adapter.getStation(query)
+        station = self.adapter.get_station(query)
         self.assertEqual(len(station.keys()), 7)
         self.assertTrue(isinstance(station, dict))
 
@@ -290,7 +290,7 @@ class MySQLAdapterTest(unittest.TestCase):
         query = {
             'name': 'Unavailable'
         }
-        station = self.adapter.getStation(query)
+        station = self.adapter.get_station(query)
         self.assertEqual(station, None)
 
     def test_getStationsInArea(self):
@@ -300,7 +300,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'latitude_upper': '7.18517',
             'longitude_upper': '80.6147'
         }
-        stations = self.adapter.getStationsInArea(query)
+        stations = self.adapter.get_stations_in_area(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
 
@@ -313,7 +313,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'latitude_upper': '7.18517',
             'longitude_upper': '80.6147'
         }
-        stations = self.adapter.getStationsInArea(query)
+        stations = self.adapter.get_stations_in_area(query)
         self.assertEqual(len(stations), 5)
         self.assertTrue('name' in stations[0])
         stations = [{'name': 'Hanwella'}, {'name': 'Colombo'}]
@@ -327,7 +327,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'from': '2017-05-31 00:00:00',
             'to': '2017-06-01 23:00:00'
         }
-        timeseries = self.adapter.retrieveTimeseries(metaQuery, opts)
+        timeseries = self.adapter.retrieve_timeseries(metaQuery, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 6)
 
@@ -336,18 +336,18 @@ class MySQLAdapterTest(unittest.TestCase):
         parameters = {'key1': 'value1'}
         source = ('FLO2D_v2', json.dumps(parameters))
         self.logger.info(source)
-        createResponse = self.adapter.createSource(source)
+        createResponse = self.adapter.create_source(source)
         self.assertEqual(createResponse.get('row_count', 0), 1)
         self.assertTrue(createResponse.get('status', False))
         newSource = createResponse.get('source', {})
         sourceId = newSource[0]
         self.assertTrue(sourceId > 0)
         # Get Source
-        getResponse = self.adapter.getSource(sourceId)
+        getResponse = self.adapter.get_source(sourceId)
         self.assertEqual(getResponse.get('id'), sourceId)
         newParamters = json.loads(getResponse.get('parameters', {}))
         self.assertTrue(newParamters.get('key1'), parameters.get('key1'))
         # Delete Source
-        deleteResponse = self.adapter.deleteSource(sourceId)
+        deleteResponse = self.adapter.delete_source(sourceId)
         self.assertTrue(deleteResponse.get('status'))
         self.assertEqual(deleteResponse.get('row_count'), 1)

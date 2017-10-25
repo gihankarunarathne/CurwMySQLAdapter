@@ -69,10 +69,10 @@ eventId = adapter.get_event_id(metaData)
 if eventId is None :
     print('eventId is None. Creating a New.')
     eventId = adapter.create_event_id(metaData)
-    rowCount = adapter.insertTimeseries(eventId, timeseries)
+    rowCount = adapter.insert_timeseries(eventId, timeseries)
     print('%s rows inserted.' % rowCount)
 else:
-    rowCount = adapter.insertTimeseries(eventId, timeseries, True)
+    rowCount = adapter.insert_timeseries(eventId, timeseries, True)
     print('%s rows inserted.' % rowCount)
 
 metaQuery = {
@@ -81,12 +81,12 @@ metaQuery = {
     'type': 'Forecast',
     'start_date': '2017-05-01 00:00:00'
 }
-response = adapter.getEventIds(metaQuery)
-timeseries = adapter.retrieveTimeseries(response)
+response = adapter.get_event_ids(metaQuery)
+timeseries = adapter.retrieve_timeseries(response)
 print(len(timeseries[0]['timeseries']))
 
 # -- Or directly query timeseries
-timeseries = adapter.retrieveTimeseries(metaQuery)
+timeseries = adapter.retrieve_timeseries(metaQuery)
 print(len(timeseries[0]['timeseries']))
 
 adapter.close()

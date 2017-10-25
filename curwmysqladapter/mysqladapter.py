@@ -414,7 +414,7 @@ class mysqladapter:
         try:
             with self.connection.cursor() as cursor:
                 if isinstance(station, tuple) and isinstance(station[0], Station):
-                    sql = "SELECT max(id) FROM `station` WHERE %s < id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
+                    sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
                     cursor.execute(sql)
                     lastId = cursor.fetchone()
@@ -424,7 +424,7 @@ class mysqladapter:
                     else:
                         station[0] = station[0].value
                 if isinstance(station, list) and isinstance(station[0], Station):
-                    sql = "SELECT max(id) FROM `station` WHERE %s < id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
+                    sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
                     cursor.execute(sql)
                     lastId = cursor.fetchone()

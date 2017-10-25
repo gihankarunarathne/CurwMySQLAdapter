@@ -246,11 +246,20 @@ class MySQLAdapterTest(unittest.TestCase):
 
     def test_createStationWithPublic(self):
         station = (Station.Public, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
+        station2 = (Station.Public, 'curw_test_station2', 'Test Station 2', 7.111666668, 80.14983334, 0, "Testing Adapter")
+        # Create first station
         self.logger.info(station)
         rowCount = self.adapter.createStation(station)
         self.assertEqual(rowCount, 1)
+        # Create second station
+        self.logger.info(station2)
+        rowCount = self.adapter.createStation(station2)
+        self.assertEqual(rowCount, 1)
+
         rowCount = self.adapter.deleteStation(stationId=station[1])
         self.assertEqual(rowCount, 1)
+        rowCount2 = self.adapter.deleteStation(stationId=station2[1])
+        self.assertEqual(rowCount2, 1)
 
     def test_createStationWithList(self):
         station = [Station.Satellite, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]

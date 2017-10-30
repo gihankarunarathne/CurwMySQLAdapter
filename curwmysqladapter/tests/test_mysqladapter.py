@@ -256,9 +256,9 @@ class MySQLAdapterTest(unittest.TestCase):
         event_id = self.adapter.get_event_id(meta_query)
         self.assertTrue(isinstance(event_id, str))
         self.assertTrue(event_id.isalnum())
-        opts = {'mode': Data.data}
+        opts = {'mode': Data.processed_data}
         row_count = self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, opts=opts)
-        self.assertEqual(row_count, 0)
+        self.assertEqual(row_count, 24)
 
     def test_createStation(self):
         station = (Station.CUrW, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")

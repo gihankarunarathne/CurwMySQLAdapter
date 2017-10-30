@@ -100,7 +100,7 @@ CREATE TABLE `curw`.`processed_data` (
   `time` DATETIME NOT NULL,
   `value` DECIMAL(8,3) NOT NULL,
   PRIMARY KEY (`id`, `time`),
-  CONSTRAINT `id`
+  CONSTRAINT `processed_id`
     FOREIGN KEY (`id`)
     REFERENCES `curw`.`run` (`id`)
     ON DELETE CASCADE

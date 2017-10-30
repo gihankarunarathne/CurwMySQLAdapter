@@ -24,6 +24,14 @@ IF abc = 1 THEN
     # GRANT DELETE ON curw.* TO 'curw'@'localhost';
     # REVOKE DELETE ON curw.* FROM 'curw'@'localhost';
 
+    # Create a user and grant permissions
+    CREATE USER 'curw'@'10.138.0.6' IDENTIFIED BY '<PASSWORD>';
+    GRANT INSERT ON curw.* TO 'curw'@'10.138.0.6';
+    GRANT SELECT ON curw.* TO 'curw'@'10.138.0.6';
+    GRANT UPDATE ON curw.* TO 'curw'@'10.138.0.6';
+    # GRANT DELETE ON curw.* TO 'curw'@'10.138.0.6';
+    # REVOKE DELETE ON curw.* FROM 'curw'@'10.138.0.6';
+
     # Crete User for WRF and grant permissions
     CREATE USER 'curw'@'10.138.0.3' IDENTIFIED BY '<PASSWORD>';
     GRANT INSERT ON curw.* TO 'curw'@'10.138.0.3';

@@ -21,7 +21,7 @@ CREATE TABLE `curw`.`unit` (
 CREATE TABLE `curw`.`source` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `source` VARCHAR(45) NOT NULL,
-  `parameters` JSON NULL,
+  `parameters` JSON NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `source_UNIQUE` (`source` ASC)
 );
@@ -84,6 +84,18 @@ CREATE TABLE `curw`.`run` (
 );
 
 CREATE TABLE `curw`.`data` (
+  `id` VARCHAR(64) NOT NULL,
+  `time` DATETIME NOT NULL,
+  `value` DECIMAL(8,3) NOT NULL,
+  PRIMARY KEY (`id`, `time`),
+  CONSTRAINT `id`
+    FOREIGN KEY (`id`)
+    REFERENCES `curw`.`run` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
+CREATE TABLE `curw`.`processed_data` (
   `id` VARCHAR(64) NOT NULL,
   `time` DATETIME NOT NULL,
   `value` DECIMAL(8,3) NOT NULL,

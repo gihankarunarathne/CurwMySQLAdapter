@@ -7,6 +7,8 @@ import traceback
 
 import pymysql.cursors
 from .station import Station
+from .data import Data
+from .AdapterError import InvalidDataAdapterError
 
 
 class MySQLAdapter:
@@ -174,7 +176,7 @@ class MySQLAdapter:
 
         return event_id
 
-    def insert_timeseries(self, event_id, timeseries, upsert=False):
+    def insert_timeseries(self, event_id, timeseries, upsert=False, opts=None):
         """Insert timeseries into the db against given event_id
 
         :param string event_id: Hex Hash value that need to store timeseries against.
@@ -186,15 +188,28 @@ class MySQLAdapter:
         Ref: 1). https://stackoverflow.com/a/14383794/1461060
              2). https://chartio.com/resources/tutorials/how-to-insert-if-row-does-not-exist-upsert-in-mysql/
 
+        :param dict opts: Options dict for insert timeseries s.t.
+        {
+            mode: 'data', 'processed_data', # Default is 'data'
+        }
+
         :return int: Affected row count.
         """
+        if opts is None:
+            opts = {}
+        data_table = opts.get('mode', Data.data)
+        if isinstance(data_table, Data):
+            data_table = data_table.value
+        else:
+            raise InvalidDataAdapterError("Provided Data type %s is invalid" % data_table)
         row_count = 0
         try:
             with self.connection.cursor() as cursor:
-                sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s)"
+                sqlTable = "INSERT INTO `%s`" % data_table
+                sql = sqlTable + " (`id`, `time`, `value`) VALUES (%s, %s, %s)"
 
                 if upsert:
-                    sql = "INSERT INTO `data` (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+                    sql = sqlTable + " (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
                 # Refer to performance in copy list : https://stackoverflow.com/a/2612990/1461060
                 timeseries_copy = []

@@ -239,10 +239,10 @@ class MySQLAdapter:
         finally:
             return row_count
 
-    def delete_timeseries(self, eventId):
+    def delete_timeseries(self, event_id):
         """Delete given timeseries from the database
 
-        :param string eventId: Hex Hash value that need to delete timeseries against
+        :param string event_id: Hex Hash value that need to delete timeseries against
 
         :return int: Affected row count.
         """
@@ -258,7 +258,7 @@ class MySQLAdapter:
                 in `data` table
                 '''
 
-                row_count = cursor.execute(sql[0], (eventId))
+                row_count = cursor.execute(sql[0], event_id)
                 self.connection.commit()
 
         except Exception as e:
@@ -266,7 +266,7 @@ class MySQLAdapter:
         finally:
             return row_count
 
-    def get_event_ids(self, meta_query={}, opts={}):
+    def get_event_ids(self, meta_query=None, opts=None):
         """Get event ids set according to given meta data
 
         :param dict meta_query: Dict of Meta Query that use to search the hash
@@ -290,6 +290,10 @@ class MySQLAdapter:
 
         :return list: Return list of event objects which matches the given scenario
         """
+        if opts is None:
+            opts = {}
+        if meta_query is None:
+            meta_query = {}
         try:
             if not opts.get('limit'):
                 opts['limit'] = 100
@@ -340,7 +344,7 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
 
-    def retrieve_timeseries(self, meta_query=[], opts={}):
+    def retrieve_timeseries(self, meta_query=None, opts=None):
         """Get timeseries
 
         :param (dict | list) meta_query: If Meta Query is a Dict, then it'll use to search the hash
@@ -366,11 +370,23 @@ class MySQLAdapter:
             'limit': 100,
             'skip': 0,
             'from': '2017-05-01 00:00:00',
-            'to': '2017-05-06 23:00:00'
+            'to': '2017-05-06 23:00:00',
+            'mode': Data.data | Data.processed_data, # Default is `Data.data`
         }
 
         :return list: Return list of objects with the timeseries data for given matching events
         """
+        if opts is None:
+            opts = {}
+        if meta_query is None:
+            meta_query = []
+
+        data_table = opts.get('mode', Data.data)
+        if isinstance(data_table, Data):
+            data_table = data_table.value
+        else:
+            raise InvalidDataAdapterError("Provided Data type %s is invalid" % data_table)
+
         try:
             if not opts.get('limit'):
                 opts['limit'] = 100
@@ -392,7 +408,7 @@ class MySQLAdapter:
                         event_id = event
                         event = {'id': event_id}
 
-                    sql = "SELECT `time`,`value` FROM `data` WHERE `id`=\"%s\" " % event_id
+                    sql = "SELECT `time`,`value` FROM `%s` WHERE `id`=\"%s\" " % (data_table, event_id)
 
                     if opts.get('from'):
                         sql += "AND `%s`>=\"%s\" " % ('time', opts['from'])

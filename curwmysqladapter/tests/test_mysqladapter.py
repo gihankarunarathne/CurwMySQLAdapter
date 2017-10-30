@@ -260,6 +260,38 @@ class MySQLAdapterTest(unittest.TestCase):
         row_count = self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, opts=opts)
         self.assertEqual(row_count, 24)
 
+    def test_retrieveTimeseriesFromProcessedData(self):
+        meta_query = {
+            'station': 'Colombo',
+            'variable': 'Precipitation',
+            'type': 'Forecast-0-d',
+            'unit': 'mm',
+            'source': 'WRF',
+            'name': 'Forecast Test',
+        }
+        opts = {
+            'from': '2017-06-01 00:00:00',
+            'to': '2017-06-01 23:00:00'
+        }
+        timeseries = self.adapter.retrieve_timeseries(meta_query, opts)
+        self.assertEqual(len(timeseries[0]['timeseries']), 24)
+        self.assertEqual(len(timeseries), 1)
+        event_id = self.adapter.get_event_id(meta_query)
+        self.assertTrue(isinstance(event_id, str))
+        self.assertTrue(event_id.isalnum())
+        opts = {'mode': Data.processed_data}
+        row_count = self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, opts=opts)
+        self.assertEqual(row_count, 24)
+        # Get Processed Data
+        new_opts = {
+            'from': '2017-06-01 00:00:00',
+            'to': '2017-06-02 23:00:00',
+            'mode': Data.processed_data,
+        }
+        processed_timeseries = self.adapter.retrieve_timeseries(meta_query, new_opts)
+        self.assertEqual(len(processed_timeseries[0]['timeseries']), 24)
+        self.assertEqual(len(processed_timeseries), 1)
+
     def test_createStation(self):
         station = (Station.CUrW, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
         self.logger.info(station)

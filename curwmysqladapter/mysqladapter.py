@@ -8,7 +8,7 @@ import traceback
 import pymysql.cursors
 from .station import Station
 from .data import Data
-from .AdapterError import InvalidDataAdapterError
+from .AdapterError import InvalidDataAdapterError, DatabaseConstrainAdapterError
 
 
 class MySQLAdapter:
@@ -146,16 +146,22 @@ class MySQLAdapter:
                     "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
                 ]
 
+                def check_foreign_key_reference(cursor_value, key_name, key_value):
+                    if cursor_value is not None:
+                        return cursor_value[0]
+                    else:
+                        raise DatabaseConstrainAdapterError("Could not find %s with value %s" % (key_name, key_value))
+
                 cursor.execute(sql[0], (meta_data['station']))
-                station_id = cursor.fetchone()[0]
+                station_id = check_foreign_key_reference(cursor.fetchone(), 'station', meta_data['station'])
                 cursor.execute(sql[1], (meta_data['variable']))
-                variable_id = cursor.fetchone()[0]
+                variable_id = check_foreign_key_reference(cursor.fetchone(), 'variable', meta_data['variable'])
                 cursor.execute(sql[2], (meta_data['unit']))
-                unit_id = cursor.fetchone()[0]
+                unit_id = check_foreign_key_reference(cursor.fetchone(), 'unit', meta_data['unit'])
                 cursor.execute(sql[3], (meta_data['type']))
-                type_id = cursor.fetchone()[0]
+                type_id = check_foreign_key_reference(cursor.fetchone(), 'type', meta_data['type'])
                 cursor.execute(sql[4], (meta_data['source']))
-                source_id = cursor.fetchone()[0]
+                source_id = check_foreign_key_reference(cursor.fetchone(), 'source', meta_data['source'])
 
                 sql = "INSERT INTO `run` (`id`, `name`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
@@ -171,8 +177,12 @@ class MySQLAdapter:
                 cursor.execute(sql, sql_values)
                 self.connection.commit()
 
+        except DatabaseConstrainAdapterError as ae:
+            logging.warning(ae.message)
+            raise ae
         except Exception as e:
             traceback.print_exc()
+            raise e
 
         return event_id
 

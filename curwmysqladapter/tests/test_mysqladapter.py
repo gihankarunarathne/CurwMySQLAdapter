@@ -8,7 +8,7 @@ from glob import glob
 
 import unittest2 as unittest
 
-from curwmysqladapter import MySQLAdapter, Station, Data
+from curwmysqladapter import MySQLAdapter, Station, Data, AdapterError
 
 
 class MySQLAdapterTest(unittest.TestCase):
@@ -152,6 +152,7 @@ class MySQLAdapterTest(unittest.TestCase):
                         cls.logger.debug('%s rows inserted.', rowCount)
             cls.logger.info("Inserted Discharge data.")
 
+            cls.contain_stations = ['Attanagalla', 'Daraniyagala', 'Glencourse', 'Holombuwa', 'Kitulgala']
 
         except Exception as e:
             traceback.print_exc()
@@ -200,6 +201,50 @@ class MySQLAdapterTest(unittest.TestCase):
     def test_getEventIdsWithEmptyQuery(self):
         response = self.adapter.get_event_ids()
         self.assertEqual(len(response), 15)
+
+    def test_createEventIdWithReferenceIssueRaiseException(self):
+        meta_data = {
+            'station': 'Hanwella_Not_Exists',
+            'variable': 'Discharge_Not_Exists',
+            'unit': 'm3/s_Not_Exists',
+            'type': 'Observed_Not_Exists',
+            'source': 'HEC-HMS_Not_Exists',
+            'name': 'Forecast Test Not Exists'
+        }
+        try:
+            self.adapter.create_event_id(meta_data)
+        except AdapterError.DatabaseConstrainAdapterError as de:
+            self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
+            self.assertEqual(de.message, 'Could not find station with value Hanwella_Not_Exists')
+
+        meta_data['station'] = 'Hanwella'
+        try:
+            self.adapter.create_event_id(meta_data)
+        except AdapterError.DatabaseConstrainAdapterError as de:
+            self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
+            self.assertEqual(de.message, 'Could not find variable with value Discharge_Not_Exists')
+
+        meta_data['variable'] = 'Discharge'
+        try:
+            self.adapter.create_event_id(meta_data)
+        except AdapterError.DatabaseConstrainAdapterError as de:
+            self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
+            self.assertEqual(de.message, 'Could not find unit with value m3/s_Not_Exists')
+
+        meta_data['unit'] = 'm3/s'
+        try:
+            self.adapter.create_event_id(meta_data)
+        except AdapterError.DatabaseConstrainAdapterError as de:
+            self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
+            self.assertEqual(de.message, 'Could not find type with value Observed_Not_Exists')
+
+        meta_data['type'] = 'Observed'
+        try:
+            self.adapter.create_event_id(meta_data)
+        except AdapterError.DatabaseConstrainAdapterError as de:
+            self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
+            self.assertEqual(de.message, 'Could not find source with value HEC-HMS_Not_Exists')
+
 
     def test_getEventIdsForGivenStation(self):
         metaQuery = {
@@ -356,7 +401,8 @@ class MySQLAdapterTest(unittest.TestCase):
             'longitude_upper': '80.6147'
         }
         stations = self.adapter.get_stations_in_area(query)
-        self.assertEqual(len(stations), 5)
+        match_stations = [x for x in stations if x['name'] in self.contain_stations]
+        self.assertEqual(len(match_stations), 5)
         self.assertTrue('name' in stations[0])
 
     # Scenario: All observed rainfall data series within a geographic region
@@ -369,7 +415,8 @@ class MySQLAdapterTest(unittest.TestCase):
             'longitude_upper': '80.6147'
         }
         stations = self.adapter.get_stations_in_area(query)
-        self.assertEqual(len(stations), 5)
+        match_stations = [x for x in stations if x['name'] in self.contain_stations]
+        self.assertEqual(len(match_stations), 5)
         self.assertTrue('name' in stations[0])
         stations = [{'name': 'Hanwella'}, {'name': 'Colombo'}]
         stationList = list(map((lambda x: x['name']), stations))

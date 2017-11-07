@@ -657,7 +657,7 @@ class MySQLAdapter:
                         source.insert(0, 0)
                     source = tuple(source)
                 if isinstance(source, list) and len(source) < 3:
-                    sql = "SELECT max(id) FROM `station`"
+                    sql = "SELECT max(id) FROM `source`"
                     logging.debug(sql)
                     cursor.execute(sql)
                     last_id = cursor.fetchone()
@@ -714,9 +714,10 @@ class MySQLAdapter:
                 logging.debug('sql (get_source):: %s', sql)
                 cursor.execute(sql)
                 source = cursor.fetchone()
-                for i, value in enumerate(self.source_struct_keys):
-                    response[value] = source[i]
-                logging.debug('source:: %s', response)
+                if source is not None:
+                    for i, value in enumerate(self.source_struct_keys):
+                        response[value] = source[i]
+                    logging.debug('source:: %s', response)
 
         except Exception as e:
             traceback.print_exc()

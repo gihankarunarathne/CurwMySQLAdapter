@@ -186,7 +186,7 @@ class MySQLAdapter:
 
         return event_id
 
-    def insert_timeseries(self, event_id, timeseries, upsert=False, opts=None):
+    def insert_timeseries(self, event_id, timeseries, upsert=False, mode=Data.data):
         """Insert timeseries into the db against given event_id
 
         :param string event_id: Hex Hash value that need to store timeseries against.
@@ -205,25 +205,23 @@ class MySQLAdapter:
 
         :return int: Affected row count.
         """
-        if opts is None:
-            opts = {}
-        data_table = opts.get('mode', Data.data)
-        if isinstance(data_table, Data):
-            data_table = data_table.value
-        else:
-            raise InvalidDataAdapterError("Provided Data type %s is invalid" % data_table)
+        if not isinstance(mode, Data):
+            raise InvalidDataAdapterError("Provided Data type %s is invalid" % mode)
+
         row_count = 0
         try:
             with self.connection.cursor() as cursor:
-                sqlTable = "INSERT INTO `%s`" % data_table
-                sql = sqlTable + " (`id`, `time`, `value`) VALUES (%s, %s, %s)"
+                sql_table = "INSERT INTO `%s`" % mode.value
+                sql = sql_table + " (`id`, `time`, `value`) VALUES (%s, %s, %s)"
 
                 if upsert:
-                    sql = sqlTable + " (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+                    sql = sql_table + \
+                          " (`id`, `time`, `value`) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
 
                 # Refer to performance in copy list : https://stackoverflow.com/a/2612990/1461060
                 timeseries_copy = []
-                for item in timeseries: timeseries_copy.append(item[:])
+                for item in timeseries:
+                    timeseries_copy.append(item[:])
 
                 new_timeseries = []
                 for t in [i for i in timeseries_copy]:
@@ -240,7 +238,8 @@ class MySQLAdapter:
                 row_count = cursor.executemany(sql, new_timeseries)
                 self.connection.commit()
 
-                sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), `end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
+                sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), " +\
+                      "`end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
                 cursor.execute(sql, (event_id, event_id, event_id))
                 self.connection.commit()
 
@@ -333,7 +332,7 @@ class MySQLAdapter:
                             # sql += "`%s`<=\"%s\" " % ('start_date', meta_query[key])
                             sql = sql[:-4]
                         elif key is 'station' and isinstance(meta_query[key], list):
-                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % (x) for x in meta_query[key]))
+                            sql += "`%s` in (%s) " % (key, ','.join('\"%s\"' % x for x in meta_query[key]))
                         else:
                             sql += "`%s`=\"%s\" " % (key, meta_query[key])
                         cnt += 1

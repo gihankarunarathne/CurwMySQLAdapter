@@ -47,7 +47,7 @@ class MySQLAdapterTest(unittest.TestCase):
             # Store Rainfall Data
             stations = ['Colombo', 'Hanwella', 'Norwood']
             types = ['Forecast-0-d', 'Forecast-1-d-after', 'Forecast-2-d-after']
-            metaData = {
+            meta_data = {
                 'station': 'Hanwella',
                 'variable': 'Precipitation',
                 'unit': 'mm',
@@ -66,33 +66,33 @@ class MySQLAdapterTest(unittest.TestCase):
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
-                    dateArr = filename.split('.')[0].split('-')
-                    cls.logger.debug('-'.join(dateArr[1:]))
-                    startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
-                    endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    cls.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
-                    stationMeta = dict(metaData)
-                    stationMeta['station'] = station
-                    stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
-                    stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
+                    date_arr = filename.split('.')[0].split('-')
+                    cls.logger.debug('-'.join(date_arr[1:]))
+                    start_date = datetime.datetime.strptime('-'.join(date_arr[1:]), '%Y-%m-%d')
+                    end_date = start_date + datetime.timedelta(hours=len(timeseries))
+                    cls.logger.debug('start_date: %s, end_date: %s', start_date, end_date)
+                    station_meta = dict(meta_data)
+                    station_meta['station'] = station
+                    station_meta['start_date'] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+                    station_meta['end_date'] = end_date.strftime("%Y-%m-%d %H:%M:%S")
 
                     for i in range(0, 3):
-                        stationMeta['type'] = types[i]
-                        eventId = cls.adapter.get_event_id(stationMeta)
-                        if eventId is None:
-                            eventId = cls.adapter.create_event_id(stationMeta)
-                            cls.logger.debug('HASH SHA256 created: %s', eventId)
+                        station_meta['type'] = types[i]
+                        event_id = cls.adapter.get_event_id(station_meta)
+                        if event_id is None:
+                            event_id = cls.adapter.create_event_id(station_meta)
+                            cls.logger.debug('HASH SHA256 created: %s', event_id)
                         else:
-                            cls.logger.debug('HASH SHA256 exists: %s', eventId)
+                            cls.logger.debug('HASH SHA256 exists: %s', event_id)
 
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in cls.eventIds:
-                            cls.eventIds.append(eventId)
-                        rowCount = cls.adapter.insert_timeseries(eventId,
-                                                                 timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
-                                                                 True)
-                        cls.logger.debug('%s rows inserted.', rowCount)
+                        if event_id not in cls.eventIds:
+                            cls.eventIds.append(event_id)
+                        row_count = cls.adapter.insert_timeseries(event_id,
+                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
+                                                                  True)
+                        cls.logger.debug('%s rows inserted.', row_count)
             cls.logger.info('Inserted Rainfall data.')
 
             # Store Discharge Data
@@ -105,7 +105,7 @@ class MySQLAdapterTest(unittest.TestCase):
                 'Forecast-4-d-after',
                 'Forecast-5-d-after'
             ]
-            metaData = {
+            meta_data = {
                 'station': 'Hanwella',
                 'variable': 'Discharge',
                 'unit': 'm3/s',
@@ -123,33 +123,33 @@ class MySQLAdapterTest(unittest.TestCase):
                     timeseries = list(timeseries)
 
                     filename = os.path.basename(file)
-                    dateArr = filename.split('.')[0].split('-')
-                    cls.logger.debug('-'.join(dateArr[1:]))
-                    startDate = datetime.datetime.strptime('-'.join(dateArr[1:]), '%Y-%m-%d')
-                    endDate = startDate + datetime.timedelta(hours=len(timeseries))
-                    cls.logger.debug('startDate: %s, endDate: %s', startDate, endDate)
-                    stationMeta = dict(metaData)
-                    stationMeta['station'] = station
-                    stationMeta['start_date'] = startDate.strftime("%Y-%m-%d %H:%M:%S")
-                    stationMeta['end_date'] = endDate.strftime("%Y-%m-%d %H:%M:%S")
+                    date_arr = filename.split('.')[0].split('-')
+                    cls.logger.debug('-'.join(date_arr[1:]))
+                    start_date = datetime.datetime.strptime('-'.join(date_arr[1:]), '%Y-%m-%d')
+                    end_date = start_date + datetime.timedelta(hours=len(timeseries))
+                    cls.logger.debug('start_date: %s, end_date: %s', start_date, end_date)
+                    station_meta = dict(meta_data)
+                    station_meta['station'] = station
+                    station_meta['start_date'] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+                    station_meta['end_date'] = end_date.strftime("%Y-%m-%d %H:%M:%S")
 
                     for i in range(0, 6):
-                        stationMeta['type'] = types[i]
-                        eventId = cls.adapter.get_event_id(stationMeta)
-                        if eventId is None:
-                            eventId = cls.adapter.create_event_id(stationMeta)
-                            cls.logger.debug('HASH SHA256 created: %s', eventId)
+                        station_meta['type'] = types[i]
+                        event_id = cls.adapter.get_event_id(station_meta)
+                        if event_id is None:
+                            event_id = cls.adapter.create_event_id(station_meta)
+                            cls.logger.debug('HASH SHA256 created: %s', event_id)
                         else:
-                            cls.logger.debug('HASH SHA256 exists: %s', eventId)
+                            cls.logger.debug('HASH SHA256 exists: %s', event_id)
 
                         # for l in timeseries[:3] + timeseries[-2:] :
                         #     print(l)
-                        if eventId not in cls.eventIds:
-                            cls.eventIds.append(eventId)
-                        rowCount = cls.adapter.insert_timeseries(eventId,
+                        if event_id not in cls.eventIds:
+                            cls.eventIds.append(event_id)
+                        row_count = cls.adapter.insert_timeseries(event_id,
                                                                  timeseries[i * DAY_INTERVAL:(i + 1) * DAY_INTERVAL],
                                                                  True)
-                        cls.logger.debug('%s rows inserted.', rowCount)
+                        cls.logger.debug('%s rows inserted.', row_count)
             cls.logger.info("Inserted Discharge data.")
 
             cls.contain_stations = ['Attanagalla', 'Daraniyagala', 'Glencourse', 'Holombuwa', 'Kitulgala']
@@ -174,7 +174,7 @@ class MySQLAdapterTest(unittest.TestCase):
         self.logger.info('tearDown')
 
     def test_getEventIdExists(self):
-        metaData = {
+        meta_data = {
             'station': 'Hanwella',
             'variable': 'Discharge',
             'unit': 'm3/s',
@@ -182,12 +182,12 @@ class MySQLAdapterTest(unittest.TestCase):
             'source': 'HEC-HMS',
             'name': 'Forecast Test'
         }
-        eventId = self.adapter.get_event_id(metaData)
-        self.assertTrue(isinstance(eventId, str))
-        self.assertTrue(eventId.isalnum())
+        event_id = self.adapter.get_event_id(meta_data)
+        self.assertTrue(isinstance(event_id, str))
+        self.assertTrue(event_id.isalnum())
 
     def test_getEventIdNotExists(self):
-        metaData = {
+        meta_data = {
             'station': 'Hanwella',
             'variable': 'Discharge',
             'unit': 'm3/s',
@@ -195,8 +195,8 @@ class MySQLAdapterTest(unittest.TestCase):
             'source': 'HEC-HMS',
             'name': 'Forecast Test Not Exists'
         }
-        eventId = self.adapter.get_event_id(metaData)
-        self.assertTrue(eventId is None)
+        event_id = self.adapter.get_event_id(meta_data)
+        self.assertTrue(event_id is None)
 
     def test_getEventIdsWithEmptyQuery(self):
         response = self.adapter.get_event_ids()
@@ -246,29 +246,29 @@ class MySQLAdapterTest(unittest.TestCase):
             self.assertEqual(de.message, 'Could not find source with value HEC-HMS_Not_Exists')
 
     def test_getEventIdsForGivenStation(self):
-        metaQuery = {
+        meta_query = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
             'type': 'Forecast-0-d',
         }
-        response = self.adapter.get_event_ids(metaQuery)
+        response = self.adapter.get_event_ids(meta_query)
         self.assertEqual(len(response), 1)
         timeseries = self.adapter.retrieve_timeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_getEventIdsForListOfStations(self):
-        metaQuery = {
+        meta_query = {
             'station': ['Hanwella', 'Colombo'],
             'variable': 'Precipitation',
             'type': 'Forecast-0-d',
         }
-        response = self.adapter.get_event_ids(metaQuery)
+        response = self.adapter.get_event_ids(meta_query)
         self.assertEqual(len(response), 2)
         timeseries = self.adapter.retrieve_timeseries(response)
         self.assertEqual(len(timeseries[0]['timeseries']), 96)
 
     def test_retrieveTimeseriesFromToDate(self):
-        metaQuery = {
+        meta_query = {
             'station': 'Hanwella',
             'variable': 'Precipitation',
             'type': 'Forecast-0-d'
@@ -277,7 +277,7 @@ class MySQLAdapterTest(unittest.TestCase):
             'from': '2017-05-31 00:00:00',
             'to': '2017-06-01 23:00:00'
         }
-        timeseries = self.adapter.retrieve_timeseries(metaQuery, opts)
+        timeseries = self.adapter.retrieve_timeseries(meta_query, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 1)
 
@@ -299,9 +299,8 @@ class MySQLAdapterTest(unittest.TestCase):
         self.assertEqual(len(timeseries), 1)
         event_id = self.adapter.get_event_id(meta_query)
         self.assertTrue(isinstance(event_id, str))
-        self.assertTrue(event_id.isalnum())
-        opts = {'mode': Data.processed_data}
-        row_count = self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, opts=opts)
+        row_count = \
+            self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, mode=Data.processed_data)
         self.assertEqual(row_count, 24)
 
     def test_retrieveTimeseriesFromProcessedData(self):
@@ -323,8 +322,8 @@ class MySQLAdapterTest(unittest.TestCase):
         event_id = self.adapter.get_event_id(meta_query)
         self.assertTrue(isinstance(event_id, str))
         self.assertTrue(event_id.isalnum())
-        opts = {'mode': Data.processed_data}
-        row_count = self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, opts=opts)
+        row_count = \
+            self.adapter.insert_timeseries(event_id, timeseries[0]['timeseries'], upsert=True, mode=Data.processed_data)
         self.assertEqual(row_count, 24)
         # Get Processed Data
         new_opts = {
@@ -339,43 +338,45 @@ class MySQLAdapterTest(unittest.TestCase):
     def test_createStation(self):
         station = (Station.CUrW, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
         self.logger.info(station)
-        rowCount = self.adapter.create_station(station)
-        self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.delete_station(station_id=station[1])
-        self.assertEqual(rowCount, 1)
+        row_count = self.adapter.create_station(station)
+        self.assertEqual(row_count, 1)
+        row_count = self.adapter.delete_station(station_id=station[1])
+        self.assertEqual(row_count, 1)
 
     def test_createStationWithPublic(self):
         station = (Station.Public, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter")
-        station2 = (Station.Public, 'curw_test_station2', 'Test Station 2', 7.111666668, 80.14983334, 0, "Testing Adapter")
+        station2 = \
+            (Station.Public, 'curw_test_station2', 'Test Station 2', 7.111666668, 80.14983334, 0, "Testing Adapter")
         # Create first station
         self.logger.info(station)
-        rowCount = self.adapter.create_station(station)
-        self.assertEqual(rowCount, 1)
+        row_count = self.adapter.create_station(station)
+        self.assertEqual(row_count, 1)
         # Create second station
         self.logger.info(station2)
-        rowCount = self.adapter.create_station(station2)
-        self.assertEqual(rowCount, 1)
+        row_count = self.adapter.create_station(station2)
+        self.assertEqual(row_count, 1)
 
-        rowCount = self.adapter.delete_station(station_id=station[1])
-        self.assertEqual(rowCount, 1)
-        rowCount2 = self.adapter.delete_station(station_id=station2[1])
-        self.assertEqual(rowCount2, 1)
+        row_count = self.adapter.delete_station(station_id=station[1])
+        self.assertEqual(row_count, 1)
+        row_count2 = self.adapter.delete_station(station_id=station2[1])
+        self.assertEqual(row_count2, 1)
 
     def test_createStationWithList(self):
-        station = [Station.Satellite, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
+        station = \
+            [Station.Satellite, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
-        rowCount = self.adapter.create_station(station)
-        self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.delete_station(station_id=station[1])
-        self.assertEqual(rowCount, 1)
+        row_count = self.adapter.create_station(station)
+        self.assertEqual(row_count, 1)
+        row_count = self.adapter.delete_station(station_id=station[1])
+        self.assertEqual(row_count, 1)
 
     def test_createStationWithGivenId(self):
         station = [110001, 'curw_test_station', 'Test Station', 7.111666667, 80.14983333, 0, "Testing Adapter"]
 
-        rowCount = self.adapter.create_station(station)
-        self.assertEqual(rowCount, 1)
-        rowCount = self.adapter.delete_station(station[0])
-        self.assertEqual(rowCount, 1)
+        row_count = self.adapter.create_station(station)
+        self.assertEqual(row_count, 1)
+        row_count = self.adapter.delete_station(station[0])
+        self.assertEqual(row_count, 1)
 
     def test_getStationByName(self):
         query = {
@@ -418,17 +419,17 @@ class MySQLAdapterTest(unittest.TestCase):
         self.assertEqual(len(match_stations), 5)
         self.assertTrue('name' in stations[0])
         stations = [{'name': 'Hanwella'}, {'name': 'Colombo'}]
-        stationList = list(map((lambda x: x['name']), stations))
+        station_list = list(map((lambda x: x['name']), stations))
 
-        metaQuery = {
-            'station': stationList,
+        meta_query = {
+            'station': station_list,
             'variable': 'Precipitation',
         }
         opts = {
             'from': '2017-05-31 00:00:00',
             'to': '2017-06-01 23:00:00'
         }
-        timeseries = self.adapter.retrieve_timeseries(metaQuery, opts)
+        timeseries = self.adapter.retrieve_timeseries(meta_query, opts)
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 6)
 

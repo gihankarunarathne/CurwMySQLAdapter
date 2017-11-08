@@ -245,7 +245,6 @@ class MySQLAdapterTest(unittest.TestCase):
             self.assertTrue(isinstance(de, AdapterError.DatabaseConstrainAdapterError))
             self.assertEqual(de.message, 'Could not find source with value HEC-HMS_Not_Exists')
 
-
     def test_getEventIdsForGivenStation(self):
         metaQuery = {
             'station': 'Hanwella',
@@ -433,23 +432,64 @@ class MySQLAdapterTest(unittest.TestCase):
         self.assertEqual(len(timeseries[0]['timeseries']), 48)
         self.assertEqual(len(timeseries), 6)
 
-    def test_sourceCRUD(self):
+    def test_sourceCRUDWithTuple(self):
         # Create Source
         parameters = {'key1': 'value1'}
         source = ('FLO2D_v2', json.dumps(parameters))
         self.logger.info(source)
-        createResponse = self.adapter.create_source(source)
-        self.assertEqual(createResponse.get('row_count', 0), 1)
-        self.assertTrue(createResponse.get('status', False))
-        newSource = createResponse.get('source', {})
-        sourceId = newSource[0]
-        self.assertTrue(sourceId > 0)
+        create_response = self.adapter.create_source(source)
+        self.assertEqual(create_response.get('row_count', 0), 1)
+        self.assertTrue(create_response.get('status', False))
+        new_source = create_response.get('source', {})
+        source_id = new_source[0]
+        self.assertTrue(source_id > 0)
         # Get Source
-        getResponse = self.adapter.get_source(sourceId)
-        self.assertEqual(getResponse.get('id'), sourceId)
-        newParamters = json.loads(getResponse.get('parameters', {}))
-        self.assertTrue(newParamters.get('key1'), parameters.get('key1'))
+        get_response = self.adapter.get_source(source_id)
+        self.assertEqual(get_response.get('id'), source_id)
+        new_parameters = json.loads(get_response.get('parameters', {}))
+        self.assertTrue(new_parameters.get('key1'), parameters.get('key1'))
         # Delete Source
-        deleteResponse = self.adapter.delete_source(sourceId)
-        self.assertTrue(deleteResponse.get('status'))
-        self.assertEqual(deleteResponse.get('row_count'), 1)
+        delete_response = self.adapter.delete_source(source_id)
+        self.assertTrue(delete_response.get('status'))
+        self.assertEqual(delete_response.get('row_count'), 1)
+
+    def test_sourceCRUDWithList(self):
+        # Create Source without Parameters
+        source = ['FLO2D_v2']
+        self.logger.info(source)
+        create_response = self.adapter.create_source(source)
+        self.assertEqual(create_response.get('row_count', 0), 1)
+        self.assertTrue(create_response.get('status', False))
+        new_source = create_response.get('source', {})
+        source_id = new_source[0]
+        self.assertTrue(source_id > 0)
+        # Get Source
+        get_response = self.adapter.get_source(source_id)
+        self.assertEqual(get_response.get('id'), source_id)
+        # Delete Source
+        delete_response = self.adapter.delete_source(source_id)
+        self.assertTrue(delete_response.get('status'))
+        self.assertEqual(delete_response.get('row_count'), 1)
+
+    def test_sourceCRUDWithStr(self):
+        # Create Source without Parameters
+        source = 'FLO2D_v2'
+        self.logger.info(source)
+        create_response = self.adapter.create_source(source)
+        self.assertEqual(create_response.get('row_count', 0), 1)
+        self.assertTrue(create_response.get('status', False))
+        new_source = create_response.get('source', {})
+        source_id = new_source[0]
+        self.assertTrue(source_id > 0)
+        # Get Source
+        get_response = self.adapter.get_source(source_id)
+        self.assertEqual(get_response.get('id'), source_id)
+        # Delete Source
+        delete_response = self.adapter.delete_source(source_id)
+        self.assertTrue(delete_response.get('status'))
+        self.assertEqual(delete_response.get('row_count'), 1)
+
+    def test_sourceNotExists(self):
+        # Get Source not exists
+        get_response = self.adapter.get_source(9999)
+        self.assertTrue(len(get_response) < 1)

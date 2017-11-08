@@ -626,15 +626,17 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
 
-    def create_source(self, source=[]):
+    def create_source(self, source=None):
         """
         Create Source with given details
 
-        :param list/tuple source: Source details in the form of
+        :param list/tuple/str source: Source details in the form of
         [<ID>, <SOURCE_NAME>, <PARAMETERS:json>]
         (<ID>, <SOURCE_NAME>, <PARAMETERS:json>) Or
         [<SOURCE_NAME>, <PARAMETERS:json>]
-        (<SOURCE_NAME>, <PARAMETERS:json>)
+        (<SOURCE_NAME>, <PARAMETERS:json>) Or
+        <SOURCE_NAME>
+
         :return: dict of
         {
             status: True/False,
@@ -642,31 +644,31 @@ class MySQLAdapter:
             source: [] # Created Sources
         }
         """
+        if source is None:
+            source = []
+        if isinstance(source, str):
+            source = [source]
+
         row_count = 0
         try:
             with self.connection.cursor() as cursor:
-                if isinstance(source, tuple) and len(source) < 3:
-                    sql = "SELECT max(id) FROM `source`"
-                    logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
-                    source = list(source)
-                    if last_id[0] is not None:
-                        source.insert(0, last_id[0] + 1)
-                    else:
-                        source.insert(0, 0)
-                    source = tuple(source)
-                if isinstance(source, list) and len(source) < 3:
-                    sql = "SELECT max(id) FROM `source`"
-                    logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
-                    if last_id[0] is not None:
-                        source.insert(0, last_id[0] + 1)
-                    else:
-                        source.insert(0, 0)
-
                 sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
+
+                if len(source) < 3:
+                    sql_source_id = "SELECT max(id) FROM `source`"
+                    logging.debug(sql_source_id)
+                    cursor.execute(sql_source_id)
+                    last_id = cursor.fetchone()
+                    if isinstance(source, tuple):
+                        source = list(source)
+                    if last_id[0] is not None:
+                        source.insert(0, last_id[0] + 1)
+                    else:
+                        source.insert(0, 0)
+                    # If parameters are still missing, append
+                    if len(source) < 3:
+                        source.append(None)
+                    source = tuple(source)
 
                 logging.debug('Create Source: %s', source)
                 row_count = cursor.execute(sql, source)
@@ -674,7 +676,7 @@ class MySQLAdapter:
                 logging.debug('Created Source # %s', row_count)
 
         except Exception as e:
-            traceback.print_exc()
+            logging.warning(e)
         finally:
             return {
                 'status': row_count > 0,
@@ -682,11 +684,11 @@ class MySQLAdapter:
                 'source': source
             }
 
-    def get_source(self, id=0, name=''):
+    def get_source(self, source_id=0, name=''):
         """
         Get existing source
 
-        :param integer id: ID of the source
+        :param integer source_id: ID of the source
         :param string name: Source Name
         :return: Dict of
         {
@@ -704,8 +706,8 @@ class MySQLAdapter:
                 output_order = ','.join(output_order)
 
                 sql = "SELECT %s FROM `source` " % output_order
-                if id > 0:
-                    sql += "WHERE id=%s" % id
+                if source_id > 0:
+                    sql += "WHERE id=%s" % source_id
                 elif name:
                     sql += "WHERE source=%s" % name
                 else:
@@ -720,7 +722,7 @@ class MySQLAdapter:
                     logging.debug('source:: %s', response)
 
         except Exception as e:
-            traceback.print_exc()
+            logging.warning(e)
         finally:
             return response
 
@@ -746,7 +748,7 @@ class MySQLAdapter:
                     logging.warning('Unable to find station')
 
         except Exception as e:
-            traceback.print_exc()
+            logging.warning(e)
         finally:
             return {
                 'status': row_count > 0,

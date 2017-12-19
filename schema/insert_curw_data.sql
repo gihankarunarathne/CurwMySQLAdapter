@@ -10,7 +10,12 @@ INSERT INTO curw.variable VALUES
   (2, 'Discharge'),
   (3, 'Waterlevel'),
   (4, 'Waterdepth'),
-  (5, 'Temperature');
+  (5, 'Temperature'),
+  (6, 'Humidity'),
+  (7, 'WindSpeed'),
+  (8, 'WindDirection'),
+  (9, 'WindGust'),
+  (10, 'SolarRadiation');
 
 INSERT INTO curw.type VALUES 
   (1, 'Observed'),
@@ -56,16 +61,19 @@ INSERT INTO curw.source VALUES
 
 INSERT INTO curw.unit (`id`, `unit`, `type`)
 VALUES
-  (1, 'mm', 'Accumulative'),      # Precipitation, Evaporation
-  (2, 'm3/s', 'Instantaneous'),   # Discharge
-  (3, 'm', 'Instantaneous'),      # Waterdepth, Waterlevel
-  (4, 'm3', 'Instantaneous'),     # Storage
-  (5, 'm/s', 'Instantaneous'),    # Wind speed
-  (6, 'oC', 'Instantaneous'),     # Temperature
-  (7, '%', 'Instantaneous'),      # Relative humidity
-  (8, 'kPa', 'Instantaneous'),    # Vapour pressure
-  (9, 'Pa', 'Instantaneous'),     # Pressure
-  (10, 's', 'Instantaneous');     # Time
+  (1, '-', 'Instantaneous'),      # Dimentionless
+  (2, 'mm', 'Accumulative'),      # Precipitation, Evaporation
+  (3, 'm3/s', 'Instantaneous'),   # Discharge
+  (4, 'm', 'Instantaneous'),      # Waterdepth, Waterlevel
+  (5, 'm3', 'Instantaneous'),     # Storage
+  (6, 'm/s', 'Instantaneous'),    # Wind speed
+  (7, 'oC', 'Instantaneous'),     # Temperature
+  (8, '%', 'Instantaneous'),      # Relative humidity
+  (9, 'kPa', 'Instantaneous'),    # Vapour pressure
+  (10, 'Pa', 'Instantaneous'),    # Pressure
+  (11, 's', 'Instantaneous'),     # Time
+  (12, 'degrees', 'Instantaneous'),# Wind Direction
+  (13, 'W/m2', 'Instantaneous');  # Solar Radiation
 
 INSERT INTO curw.station (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`)
 VALUES

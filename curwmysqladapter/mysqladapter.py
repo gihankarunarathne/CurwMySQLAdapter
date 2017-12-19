@@ -434,7 +434,7 @@ class MySQLAdapter:
         except Exception as e:
             traceback.print_exc()
 
-    def create_station(self, station=[]):
+    def create_station(self, station=None):
         """Insert stations into the database
 
          Station ids ranged as below;
@@ -452,6 +452,8 @@ class MySQLAdapter:
         [<Station.CUrW>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or
         (<ID>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>)
         """
+        if station is None:
+            station = []
         row_count = 0
         try:
             with self.connection.cursor() as cursor:

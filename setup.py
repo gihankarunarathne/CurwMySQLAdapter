@@ -5,7 +5,7 @@ with open('./README.md') as f:
     readme = f.read()
 
 setup(name='curwmysqladapter',
-      version='0.2',
+      version='0.2.1',
       description='MySQL Adapter for storing Weather Timeseries',
       long_description=readme,
       url='http://github.com/gihankarunarathne/CurwMySQLAdapter',

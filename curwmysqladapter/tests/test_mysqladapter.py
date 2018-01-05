@@ -445,7 +445,7 @@ class MySQLAdapterTest(unittest.TestCase):
         source_id = new_source[0]
         self.assertTrue(source_id > 0)
         # Get Source
-        get_response = self.adapter.get_source(source_id)
+        get_response = self.adapter.get_source(name=new_source[1])
         self.assertEqual(get_response.get('id'), source_id)
         new_parameters = json.loads(get_response.get('parameters', {}))
         self.assertTrue(new_parameters.get('key1'), parameters.get('key1'))

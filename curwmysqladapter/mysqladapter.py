@@ -695,7 +695,7 @@ class MySQLAdapter:
         {
             id: '',
             source: '',
-            param: ''
+            parameters: ''
         }
         """
         response = {}
@@ -710,7 +710,7 @@ class MySQLAdapter:
                 if source_id > 0:
                     sql += "WHERE id=%s" % source_id
                 elif name:
-                    sql += "WHERE source=%s" % name
+                    sql += "WHERE source=\"%s\"" % name
                 else:
                     logging.warning('Unable to find source')
 

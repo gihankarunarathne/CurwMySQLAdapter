@@ -14,6 +14,9 @@ class Station(Enum):
     Simulation models station ids ranged over 1’000’000 as below;
     - 1 1xx xxx - WRF (stationId: wrf_<SOMETHING>)
     - 1 2xx xxx - FLO2D (stationId: flo2d_<SOMETHING>)
+
+    Other;
+    - 2 xxx xxx - Other (stationId: other_<SOMETHING>)
     """
     CUrW = 100000
     Megapolis = 200000
@@ -26,6 +29,8 @@ class Station(Enum):
     WRF = 1100000
     FLO2D = 1200000
 
+    Other = 2000000
+
     _nameToRange = {
         CUrW: 100000,
         Megapolis: 100000,
@@ -36,7 +41,9 @@ class Station(Enum):
         Sat: 200000,
 
         WRF: 100000,
-        FLO2D: 100000
+        FLO2D: 100000,
+
+        Other: 1000000
     }
 
     @staticmethod
@@ -51,6 +58,26 @@ class Station(Enum):
             Station.Sat: 200000,
 
             Station.WRF: 100000,
-            Station.FLO2D: 100000
+            Station.FLO2D: 100000,
+
+            Station.Other: 1000000
         }
-        return _nameToRange.get(name, 100000)
+        return _nameToRange.get(name, 1000000)
+
+    @staticmethod
+    def getType(name):
+        _nameToType = {
+            'CUrW': Station.CUrW,
+            'Megapolis': Station.Megapolis,
+            'Government': Station.Government,
+            'Gov': Station.Gov,
+            'Public': Station.Public,
+            'Satellite': Station.Satellite,
+            'Sat': Station.Sat,
+
+            'WRF': Station.WRF,
+            'FLO2D': Station.FLO2D,
+
+            'Other': Station.Other
+        }
+        return _nameToType.get(name, Station.Other)

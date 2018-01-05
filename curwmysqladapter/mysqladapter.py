@@ -369,7 +369,7 @@ class MySQLAdapter:
             'end_date': '2017-05-03 23:00:00',
         }
         If the Meta Query is a List, then those will use to retrieve the timeseries.
-        List may have following struture s.t.
+        List may have following structure s.t.
             ['eventId1', 'eventId2', ...] // List of strings
         Or
             [{id: 'eventId1'}, {id: 'eventId2'}, ...] // List of Objects

@@ -7,8 +7,11 @@ import traceback
 
 import pymysql.cursors
 from .station import Station
-from .data import Data
-from .AdapterError import InvalidDataAdapterError, DatabaseConstrainAdapterError
+from .data import Data, TimeseriesGroupOperation
+from .Constants import COMMON_DATETIME_FORMAT, MYSQL_DATETIME_FORMAT
+from .Utils import validate_common_datetime
+from .SQLQueries import get_query
+from .AdapterError import InvalidDataAdapterError, DatabaseConstrainAdapterError, DatabaseAdapterError
 
 
 class MySQLAdapter:
@@ -433,6 +436,42 @@ class MySQLAdapter:
                 return response
         except Exception as e:
             traceback.print_exc()
+
+    def extract_grouped_time_series(self, event_id, start_date, end_date, group_operation):
+        """
+        Extract the grouped timeseries for the given event_id.
+        :param event_id: timeseries id
+        :param start_date: start datetime (early datetime) [exclusive]
+        :param end_date: end datetime (late datetime) [inclusive]
+        :param group_operation: aggregation time interval and value operation
+        :return: timerseries, a list of list, [[datetime, value], [datetime, value], ...]
+        """
+        # Group operation should be of TimeseriesGroupOperation enum type.
+        if not isinstance(group_operation, TimeseriesGroupOperation):
+            raise InvalidDataAdapterError("Provided group_operation: %s is of not valid type" % group_operation)
+
+        # Validate start and end dates.
+        # Should be in the COMMON_DATETIME_FORMAT('%Y-%m-%d %H:%M:%S'). Should be in string format.
+        if not validate_common_datetime(start_date) or not validate_common_datetime(end_date):
+            raise InvalidDataAdapterError("Provided start_date: %s or end_date: %s is no in the '%s' format"
+                                          % (start_date, end_date, COMMON_DATETIME_FORMAT))
+
+        # Get the SQL Query.
+        sql_query = get_query(group_operation, event_id, start_date, end_date)
+        # Execute the SQL Query.
+        timeseries = []
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(sql_query)
+                timeseries = cursor.fetchall()
+        except Exception as ex:
+            raise DatabaseAdapterError("An error occurred while executing sql query: %s, Exception Message: %s"
+                                       % (sql_query, ex.messsage))
+
+        # Prepare the output time series.
+        # If the retrieved data set is empty return empty list.
+        return [[time, value] for time, value in timeseries]
+
 
     def create_station(self, station=None):
         """Insert stations into the database

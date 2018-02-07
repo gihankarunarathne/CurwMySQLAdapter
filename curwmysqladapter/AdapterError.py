@@ -10,3 +10,8 @@ class InvalidDataAdapterError(AdapterError):
 class DatabaseConstrainAdapterError(AdapterError):
     def __init__(self, message):
         self.message = message
+
+
+class DatabaseAdapterError(AdapterError):
+    def __init__(self, message):
+        self.message = message

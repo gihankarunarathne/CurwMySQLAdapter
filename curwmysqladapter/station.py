@@ -43,7 +43,7 @@ class Station(Enum):
 
         WRF: 100000,
         FLO2D: 100000,
-        MIKE11: 1300000,
+        MIKE11: 100000,
 
         Other: 1000000
     }

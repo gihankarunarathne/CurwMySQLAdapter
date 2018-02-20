@@ -484,8 +484,9 @@ class MySQLAdapter:
         - 8 xx xxx - Satellite (stationId: sat_<SOMETHING>)
 
         Simulation models station ids ranged over 1’000’000 as below;
-        - 1 1xx xxx - WRF (stationId: wrf_<SOMETHING>)
-        - 1 2xx xxx - FLO2D (stationId: flo2d_<SOMETHING>)
+        - 1 1xx xxx - WRF (stationId: [;<prefix>_]wrf_<SOMETHING>)
+        - 1 2xx xxx - FLO2D (stationId: [;<prefix>_]flo2d_<SOMETHING>)
+        - 1 3xx xxx - MIKE (stationId: [;<prefix>_]mike_<SOMETHING>)
 
         :param list/tuple   station: Station details in the form of list s.t.
         [<Station.CUrW>, <STATION_ID>, <NAME>, <LATITUDE>, <LONGITUDE>, <RESOLUTION>, <DESCRIPTION>] Or

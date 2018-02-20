@@ -28,6 +28,7 @@ class Station(Enum):
 
     WRF = 1100000
     FLO2D = 1200000
+    MIKE = 1300000
 
     Other = 2000000
 
@@ -42,6 +43,7 @@ class Station(Enum):
 
         WRF: 100000,
         FLO2D: 100000,
+        MIKE: 1300000,
 
         Other: 1000000
     }
@@ -59,6 +61,7 @@ class Station(Enum):
 
             Station.WRF: 100000,
             Station.FLO2D: 100000,
+            Station.MIKE: 100000,
 
             Station.Other: 1000000
         }
@@ -77,6 +80,7 @@ class Station(Enum):
 
             'WRF': Station.WRF,
             'FLO2D': Station.FLO2D,
+            'MIKE': Station.MIKE,
 
             'Other': Station.Other
         }

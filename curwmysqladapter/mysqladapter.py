@@ -446,15 +446,15 @@ class MySQLAdapter:
             if not opts.get('skip'):
                 opts['skip'] = 0
 
-            with connection.cursor() as cursor:
-                if isinstance(meta_query, dict):
-                    event_ids = self.get_event_ids(meta_query)
-                else:
-                    event_ids = list(meta_query)
+            if isinstance(meta_query, dict):
+                event_ids = self.get_event_ids(meta_query)
+            else:
+                event_ids = list(meta_query)
 
-                logging.debug('event_ids :: %s', event_ids)
-                response = []
-                for event in event_ids:
+            logging.debug('event_ids :: %s', event_ids)
+            response = []
+            for event in event_ids:
+                with connection.cursor() as cursor:
                     if isinstance(event, dict):
                         event_id = event.get('id')
                     else:

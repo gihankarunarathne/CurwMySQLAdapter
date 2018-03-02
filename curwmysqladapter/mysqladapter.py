@@ -199,7 +199,6 @@ class MySQLAdapter:
                     source_id
                 )
                 cursor6.execute(sql, sql_values)
-                connection.commit()
                 return event_id
 
         except DatabaseConstrainAdapterError as ae:
@@ -263,18 +262,17 @@ class MySQLAdapter:
 
                 logging.debug(new_timeseries[:10])
                 row_count = cursor1.executemany(sql, new_timeseries)
-                connection.commit()
 
             with connection.cursor() as cursor2:
                 sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), " +\
                       "`end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
                 cursor2.execute(sql, (event_id, event_id, event_id))
-                connection.commit()
 
             return row_count
 
         except Exception as ex:
-            error_message = 'Error in retrieving event_id for meta data: %s.' % meta_data
+            error_message = 'Error in insterting timeseries: ' \
+                            '(event_id: %s, upsert: %s, mode: %s)' % (event_id, upsert, mode)
             # TODO logging and raising is considered as a cliche' and bad practice.
             logging.error(error_message)
             raise DatabaseAdapterError(error_message, ex)
@@ -303,7 +301,6 @@ class MySQLAdapter:
                 in `data` table
                 '''
                 row_count = cursor.execute(sql[0], event_id)
-                connection.commit()
                 return row_count
         except Exception as ex:
             error_message = 'Error in deleting timeseries of for event_id: %s.' % event_id
@@ -578,7 +575,6 @@ class MySQLAdapter:
 
                 logging.debug('Create Station: %s', station)
                 row_count = cursor2.execute(sql, station)
-                connection.commit()
                 logging.debug('Created Station # %s', row_count)
 
             return row_count
@@ -658,12 +654,10 @@ class MySQLAdapter:
                 if id > 0:
                     sql = "DELETE FROM `station` WHERE `id`=%s"
                     row_count = cursor.execute(sql, (id))
-                    connection.commit()
                 elif station_id:
                     sql = "DELETE FROM `station` WHERE `stationId`=%s"
 
                     row_count = cursor.execute(sql, (station_id))
-                    connection.commit()
                 else:
                     logging.warning('Unable to find station')
                 return row_count
@@ -794,7 +788,6 @@ class MySQLAdapter:
             with connection.cursor() as cursor2:
                 logging.debug('Create Source: %s', source)
                 row_count = cursor2.execute(sql, source)
-                connection.commit()
                 logging.debug('Created Source # %s', row_count)
 
             return {
@@ -877,7 +870,6 @@ class MySQLAdapter:
                 if id > 0:
                     sql = "DELETE FROM `source` WHERE `id`=%s"
                     row_count = cursor.execute(sql, id)
-                    connection.commit()
                 else:
                     logging.warning('Unable to find station')
 

@@ -151,32 +151,42 @@ class MySQLAdapter:
         event_id = m.hexdigest()
         connection = self.pool.get()
         try:
-            with connection.cursor() as cursor:
-                sql = [
-                    "SELECT `id` as `station_id` FROM `station` WHERE `name`=%s",
-                    "SELECT `id` as `variable_id` FROM `variable` WHERE `variable`=%s",
-                    "SELECT `id` as `unit_id` FROM `unit` WHERE `unit`=%s",
-                    "SELECT `id` as `type_id` FROM `type` WHERE `type`=%s",
-                    "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
-                ]
+            sql = [
+                "SELECT `id` as `station_id` FROM `station` WHERE `name`=%s",
+                "SELECT `id` as `variable_id` FROM `variable` WHERE `variable`=%s",
+                "SELECT `id` as `unit_id` FROM `unit` WHERE `unit`=%s",
+                "SELECT `id` as `type_id` FROM `type` WHERE `type`=%s",
+                "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
+            ]
 
-                def check_foreign_key_reference(cursor_value, key_name, key_value):
-                    if cursor_value is not None:
-                        return cursor_value[0]
-                    else:
-                        raise DatabaseConstrainAdapterError("Could not find %s with value %s" % (key_name, key_value))
+            def check_foreign_key_reference(cursor_value, key_name, key_value):
+                if cursor_value is not None:
+                    return cursor_value[0]
+                else:
+                    raise DatabaseConstrainAdapterError("Could not find %s with value %s" % (key_name, key_value))
 
-                cursor.execute(sql[0], (meta_data['station']))
-                station_id = check_foreign_key_reference(cursor.fetchone(), 'station', meta_data['station'])
-                cursor.execute(sql[1], (meta_data['variable']))
-                variable_id = check_foreign_key_reference(cursor.fetchone(), 'variable', meta_data['variable'])
-                cursor.execute(sql[2], (meta_data['unit']))
-                unit_id = check_foreign_key_reference(cursor.fetchone(), 'unit', meta_data['unit'])
-                cursor.execute(sql[3], (meta_data['type']))
-                type_id = check_foreign_key_reference(cursor.fetchone(), 'type', meta_data['type'])
-                cursor.execute(sql[4], (meta_data['source']))
-                source_id = check_foreign_key_reference(cursor.fetchone(), 'source', meta_data['source'])
+            station_id = None
+            variable_id = None
+            unit_id = None
+            type_id = None
+            source_id = None
+            with connection.cursor() as cursor1:
+                cursor1.execute(sql[0], (meta_data['station']))
+                station_id = check_foreign_key_reference(cursor1.fetchone(), 'station', meta_data['station'])
+            with connection.cursor() as cursor2:
+                cursor2.execute(sql[1], (meta_data['variable']))
+                variable_id = check_foreign_key_reference(cursor2.fetchone(), 'variable', meta_data['variable'])
+            with connection.cursor() as cursor3:
+                cursor3.execute(sql[2], (meta_data['unit']))
+                unit_id = check_foreign_key_reference(cursor3.fetchone(), 'unit', meta_data['unit'])
+            with connection.cursor() as cursor4:
+                cursor4.execute(sql[3], (meta_data['type']))
+                type_id = check_foreign_key_reference(cursor4.fetchone(), 'type', meta_data['type'])
+            with connection.cursor() as cursor5:
+                cursor5.execute(sql[4], (meta_data['source']))
+                source_id = check_foreign_key_reference(cursor5.fetchone(), 'source', meta_data['source'])
 
+            with connection.cursor() as cursor6:
                 sql = "INSERT INTO `run` (`id`, `name`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 sql_values = (
@@ -188,7 +198,7 @@ class MySQLAdapter:
                     type_id,
                     source_id
                 )
-                cursor.execute(sql, sql_values)
+                cursor6.execute(sql, sql_values)
                 connection.commit()
                 return event_id
 
@@ -227,7 +237,7 @@ class MySQLAdapter:
         row_count = 0
         connection = self.pool.get()
         try:
-            with connection.cursor() as cursor:
+            with connection.cursor() as cursor1:
                 sql_table = "INSERT INTO `%s`" % mode.value
                 sql = sql_table + " (`id`, `time`, `value`) VALUES (%s, %s, %s)"
 
@@ -252,12 +262,13 @@ class MySQLAdapter:
                         logging.warning('Invalid timeseries data:: %s', t)
 
                 logging.debug(new_timeseries[:10])
-                row_count = cursor.executemany(sql, new_timeseries)
+                row_count = cursor1.executemany(sql, new_timeseries)
                 connection.commit()
 
+            with connection.cursor() as cursor2:
                 sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), " +\
                       "`end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
-                cursor.execute(sql, (event_id, event_id, event_id))
+                cursor2.execute(sql, (event_id, event_id, event_id))
                 connection.commit()
 
             return row_count
@@ -540,36 +551,37 @@ class MySQLAdapter:
         row_count = 0
         connection = self.pool.get()
         try:
-            with connection.cursor() as cursor:
+            with connection.cursor() as cursor1:
                 if isinstance(station, tuple) and isinstance(station[0], Station):
                     sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" \
                           % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql)
+                    last_id = cursor1.fetchone()
                     station = list(station)
                     if last_id[0] is not None:
                         station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
-                if isinstance(station, list) and isinstance(station[0], Station):
+                elif isinstance(station, list) and isinstance(station[0], Station):
                     sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql)
+                    last_id = cursor1.fetchone()
                     if last_id[0] is not None:
                         station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
 
+            with connection.cursor() as cursor2:
                 sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 logging.debug('Create Station: %s', station)
-                row_count = cursor.execute(sql, station)
+                row_count = cursor2.execute(sql, station)
                 connection.commit()
                 logging.debug('Created Station # %s', row_count)
 
-                return row_count
+            return row_count
 
         except Exception as ex:
             error_message = 'Error in creating station: %s' % station
@@ -761,14 +773,13 @@ class MySQLAdapter:
         row_count = 0
         connection = self.pool.get()
         try:
-            with connection.cursor() as cursor:
-                sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
-
+            sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
+            with connection.cursor() as cursor1:
                 if len(source) < 3:
                     sql_source_id = "SELECT max(id) FROM `source`"
                     logging.debug(sql_source_id)
-                    cursor.execute(sql_source_id)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql_source_id)
+                    last_id = cursor1.fetchone()
                     if isinstance(source, tuple):
                         source = list(source)
                     if last_id[0] is not None:
@@ -780,16 +791,17 @@ class MySQLAdapter:
                         source.append(None)
                     source = tuple(source)
 
+            with connection.cursor() as cursor2:
                 logging.debug('Create Source: %s', source)
-                row_count = cursor.execute(sql, source)
+                row_count = cursor2.execute(sql, source)
                 connection.commit()
                 logging.debug('Created Source # %s', row_count)
 
-                return {
-                    'status': row_count > 0,
-                    'row_count': row_count,
-                    'source': source
-                }
+            return {
+                'status': row_count > 0,
+                'row_count': row_count,
+                'source': source
+            }
 
         except Exception as ex:
             error_message = 'Error in creating source: %s' % source

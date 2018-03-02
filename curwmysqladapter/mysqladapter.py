@@ -569,11 +569,11 @@ class MySQLAdapter:
                     for i, value in enumerate(self.station_struct_keys):
                         response[value] = station[i]
                     logging.debug('station:: %s', response)
-
-        except Exception as e:
-            traceback.print_exc()
-        finally:
             return response
+
+        except Exception as ex:
+            logging.error('Error in retrieving station data: %s. Exception :: %s' % (query, ex))
+            raise DatabaseAdapterError('Error in retrieving station data: %s. Exception :: %s' % (query, ex))
 
     def delete_station(self, id=0, station_id=''):
         """Delete given station from the database

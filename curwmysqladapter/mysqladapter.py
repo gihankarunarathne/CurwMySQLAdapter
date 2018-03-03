@@ -5,7 +5,10 @@ import json
 import logging
 import traceback
 
+import pymysql
 import pymysql.cursors
+from .pymysqlpool import Pool
+
 from .station import Station
 from .data import Data, TimeseriesGroupOperation
 from .Constants import COMMON_DATETIME_FORMAT, MYSQL_DATETIME_FORMAT
@@ -16,23 +19,21 @@ from .AdapterError import InvalidDataAdapterError, DatabaseConstrainAdapterError
 
 class MySQLAdapter:
     def __init__(self, host="localhost", user="root", password="", db="curw"):
-        """Initialize Database Connection"""
-        # Open database connection
-        self.connection = pymysql.connect(host=host,
-                                          user=user,
-                                          password=password,
-                                          db=db)
 
-        # prepare a cursor object using cursor() method
-        cursor = self.connection.cursor()
+        # Initialize db connection pool.
+        def conn_creator():
+            return pymysql.connect(host=host, user=user, password=password, db=db, autocommit=True)
 
-        # execute SQL query using execute() method.
-        cursor.execute("SELECT VERSION()")
+        self.pool = Pool(create_instance=conn_creator)
 
-        # Fetch a single row using fetchone() method.
-        data = cursor.fetchone()
-
-        logging.info("Database version : %s " % data)
+        # Retrieve db version.
+        conn = self.pool.get()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT VERSION()")
+            data = cursor.fetchone()
+            logging.info("Database version : %s " % data)
+        if conn is not None:
+            self.pool.put(conn)
 
         self.meta_struct = {
             'station': '',
@@ -61,6 +62,9 @@ class MySQLAdapter:
             'parameters': ''
         }
         self.source_struct_keys = self.source_struct.keys()
+
+    def get_connection(self):
+        pass
 
     def get_meta_struct(self):
         """Get the Meta Data Structure of hash value
@@ -100,18 +104,24 @@ class MySQLAdapter:
 
         m.update(json.dumps(hash_data, sort_keys=True).encode("ascii"))
         possible_id = m.hexdigest()
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 sql = "SELECT 1 FROM `run` WHERE `id`=%s"
 
                 cursor.execute(sql, possible_id)
                 is_exist = cursor.fetchone()
                 if is_exist is not None:
                     event_id = possible_id
-        except Exception as e:
-            traceback.print_exc()
-        finally:
             return event_id
+        except Exception as ex:
+            error_message = 'Error in retrieving event_id for meta data: %s.' % meta_data
+            #TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def create_event_id(self, meta_data):
         """
@@ -139,33 +149,44 @@ class MySQLAdapter:
 
         m.update(json.dumps(hash_data, sort_keys=True).encode("ascii"))
         event_id = m.hexdigest()
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
-                sql = [
-                    "SELECT `id` as `station_id` FROM `station` WHERE `name`=%s",
-                    "SELECT `id` as `variable_id` FROM `variable` WHERE `variable`=%s",
-                    "SELECT `id` as `unit_id` FROM `unit` WHERE `unit`=%s",
-                    "SELECT `id` as `type_id` FROM `type` WHERE `type`=%s",
-                    "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
-                ]
+            sql = [
+                "SELECT `id` as `station_id` FROM `station` WHERE `name`=%s",
+                "SELECT `id` as `variable_id` FROM `variable` WHERE `variable`=%s",
+                "SELECT `id` as `unit_id` FROM `unit` WHERE `unit`=%s",
+                "SELECT `id` as `type_id` FROM `type` WHERE `type`=%s",
+                "SELECT `id` as `source_id` FROM `source` WHERE `source`=%s"
+            ]
 
-                def check_foreign_key_reference(cursor_value, key_name, key_value):
-                    if cursor_value is not None:
-                        return cursor_value[0]
-                    else:
-                        raise DatabaseConstrainAdapterError("Could not find %s with value %s" % (key_name, key_value))
+            def check_foreign_key_reference(cursor_value, key_name, key_value):
+                if cursor_value is not None:
+                    return cursor_value[0]
+                else:
+                    raise DatabaseConstrainAdapterError("Could not find %s with value %s" % (key_name, key_value))
 
-                cursor.execute(sql[0], (meta_data['station']))
-                station_id = check_foreign_key_reference(cursor.fetchone(), 'station', meta_data['station'])
-                cursor.execute(sql[1], (meta_data['variable']))
-                variable_id = check_foreign_key_reference(cursor.fetchone(), 'variable', meta_data['variable'])
-                cursor.execute(sql[2], (meta_data['unit']))
-                unit_id = check_foreign_key_reference(cursor.fetchone(), 'unit', meta_data['unit'])
-                cursor.execute(sql[3], (meta_data['type']))
-                type_id = check_foreign_key_reference(cursor.fetchone(), 'type', meta_data['type'])
-                cursor.execute(sql[4], (meta_data['source']))
-                source_id = check_foreign_key_reference(cursor.fetchone(), 'source', meta_data['source'])
+            station_id = None
+            variable_id = None
+            unit_id = None
+            type_id = None
+            source_id = None
+            with connection.cursor() as cursor1:
+                cursor1.execute(sql[0], (meta_data['station']))
+                station_id = check_foreign_key_reference(cursor1.fetchone(), 'station', meta_data['station'])
+            with connection.cursor() as cursor2:
+                cursor2.execute(sql[1], (meta_data['variable']))
+                variable_id = check_foreign_key_reference(cursor2.fetchone(), 'variable', meta_data['variable'])
+            with connection.cursor() as cursor3:
+                cursor3.execute(sql[2], (meta_data['unit']))
+                unit_id = check_foreign_key_reference(cursor3.fetchone(), 'unit', meta_data['unit'])
+            with connection.cursor() as cursor4:
+                cursor4.execute(sql[3], (meta_data['type']))
+                type_id = check_foreign_key_reference(cursor4.fetchone(), 'type', meta_data['type'])
+            with connection.cursor() as cursor5:
+                cursor5.execute(sql[4], (meta_data['source']))
+                source_id = check_foreign_key_reference(cursor5.fetchone(), 'source', meta_data['source'])
 
+            with connection.cursor() as cursor6:
                 sql = "INSERT INTO `run` (`id`, `name`, `station`, `variable`, `unit`, `type`, `source`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 sql_values = (
@@ -177,17 +198,18 @@ class MySQLAdapter:
                     type_id,
                     source_id
                 )
-                cursor.execute(sql, sql_values)
-                self.connection.commit()
+                cursor6.execute(sql, sql_values)
+                return event_id
 
         except DatabaseConstrainAdapterError as ae:
-            logging.warning(ae.message)
+            #TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error("Database Constraint Violation Error: %s" % ae.message)
             raise ae
-        except Exception as e:
-            traceback.print_exc()
-            raise e
-
-        return event_id
+        except Exception as ex:
+            raise DatabaseAdapterError("Error while creating event_id for meta_data: %s" % meta_data, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def insert_timeseries(self, event_id, timeseries, upsert=False, mode=Data.data):
         """Insert timeseries into the db against given event_id
@@ -212,8 +234,9 @@ class MySQLAdapter:
             raise InvalidDataAdapterError("Provided Data type %s is invalid" % mode)
 
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor1:
                 sql_table = "INSERT INTO `%s`" % mode.value
                 sql = sql_table + " (`id`, `time`, `value`) VALUES (%s, %s, %s)"
 
@@ -238,18 +261,24 @@ class MySQLAdapter:
                         logging.warning('Invalid timeseries data:: %s', t)
 
                 logging.debug(new_timeseries[:10])
-                row_count = cursor.executemany(sql, new_timeseries)
-                self.connection.commit()
+                row_count = cursor1.executemany(sql, new_timeseries)
 
+            with connection.cursor() as cursor2:
                 sql = "UPDATE `run` SET `start_date`=(SELECT MIN(time) from `data` WHERE id=%s), " +\
                       "`end_date`=(SELECT MAX(time) from `data` WHERE id=%s) WHERE id=%s"
-                cursor.execute(sql, (event_id, event_id, event_id))
-                self.connection.commit()
+                cursor2.execute(sql, (event_id, event_id, event_id))
 
-        except Exception as e:
-            traceback.print_exc()
-        finally:
             return row_count
+
+        except Exception as ex:
+            error_message = 'Error in insterting timeseries: ' \
+                            '(event_id: %s, upsert: %s, mode: %s)' % (event_id, upsert, mode)
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def delete_timeseries(self, event_id):
         """Delete given timeseries from the database
@@ -259,24 +288,28 @@ class MySQLAdapter:
         :return int: Affected row count.
         """
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 sql = [
                     "DELETE FROM `run` WHERE `id`=%s",
                 ]
-                ''' "DELETE FROM `data` WHERE `id`=%s"
+                ''' 
+                "DELETE FROM `data` WHERE `id`=%s"
                 NOTE: Since `data` table `id` foriegn key contain on `ON DELETE CASCADE`,
                 when deleting entries on `run` table will automatically delete the records
                 in `data` table
                 '''
-
                 row_count = cursor.execute(sql[0], event_id)
-                self.connection.commit()
-
-        except Exception as e:
-            traceback.print_exc()
+                return row_count
+        except Exception as ex:
+            error_message = 'Error in deleting timeseries of for event_id: %s.' % event_id
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
         finally:
-            return row_count
+            if connection is not None:
+                self.pool.put(connection)
 
     def get_event_ids(self, meta_query=None, opts=None):
         """Get event ids set according to given meta data
@@ -306,13 +339,14 @@ class MySQLAdapter:
             opts = {}
         if meta_query is None:
             meta_query = {}
+        connection = self.pool.get()
         try:
             if not opts.get('limit'):
                 opts['limit'] = 100
             if not opts.get('skip'):
                 opts['skip'] = 0
 
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 out_order = []
                 sorted_keys = ['id'] + self.meta_struct_keys
                 for key in sorted_keys:
@@ -353,8 +387,14 @@ class MySQLAdapter:
 
                 return response
 
-        except Exception as e:
-            traceback.print_exc()
+        except Exception as ex:
+            error_message = 'Error in retrieving event_ids for meta query: %s.' % meta_query
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def retrieve_timeseries(self, meta_query=None, opts=None):
         """Get timeseries
@@ -399,21 +439,22 @@ class MySQLAdapter:
         else:
             raise InvalidDataAdapterError("Provided Data type %s is invalid" % data_table)
 
+        connection = self.pool.get()
         try:
             if not opts.get('limit'):
                 opts['limit'] = 100
             if not opts.get('skip'):
                 opts['skip'] = 0
 
-            with self.connection.cursor() as cursor:
-                if isinstance(meta_query, dict):
-                    event_ids = self.get_event_ids(meta_query)
-                else:
-                    event_ids = list(meta_query)
+            if isinstance(meta_query, dict):
+                event_ids = self.get_event_ids(meta_query)
+            else:
+                event_ids = list(meta_query)
 
-                logging.debug('event_ids :: %s', event_ids)
-                response = []
-                for event in event_ids:
+            logging.debug('event_ids :: %s', event_ids)
+            response = []
+            for event in event_ids:
+                with connection.cursor() as cursor:
                     if isinstance(event, dict):
                         event_id = event.get('id')
                     else:
@@ -434,8 +475,14 @@ class MySQLAdapter:
                     response.append(event)
 
                 return response
-        except Exception as e:
-            traceback.print_exc()
+        except Exception as ex:
+            error_message = 'Error in retrieving timeseries for meta query: %s.' % meta_query
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def extract_grouped_time_series(self, event_id, start_date, end_date, group_operation):
         """
@@ -459,19 +506,23 @@ class MySQLAdapter:
         # Get the SQL Query.
         sql_query = get_query(group_operation, event_id, start_date, end_date)
         # Execute the SQL Query.
-        timeseries = []
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 cursor.execute(sql_query)
                 timeseries = cursor.fetchall()
+                # Prepare the output time series.
+                # If the retrieved data set is empty return empty list.
+                return [[time, value] for time, value in timeseries]
         except Exception as ex:
-            raise DatabaseAdapterError("An error occurred while executing sql query: %s, Exception Message: %s"
-                                       % (sql_query, ex.messsage))
-
-        # Prepare the output time series.
-        # If the retrieved data set is empty return empty list.
-        return [[time, value] for time, value in timeseries]
-
+            error_message = 'Error in retrieving grouped_time_series for meta data: (%s, %s, %s, %s).' \
+                            % (event_id, start_date, end_date, group_operation)
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def create_station(self, station=None):
         """Insert stations into the database
@@ -495,40 +546,47 @@ class MySQLAdapter:
         if station is None:
             station = []
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor1:
                 if isinstance(station, tuple) and isinstance(station[0], Station):
                     sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" \
                           % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql)
+                    last_id = cursor1.fetchone()
                     station = list(station)
                     if last_id[0] is not None:
                         station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
-                if isinstance(station, list) and isinstance(station[0], Station):
+                elif isinstance(station, list) and isinstance(station[0], Station):
                     sql = "SELECT max(id) FROM `station` WHERE %s <= id AND id < %s" % (station[0].value, station[0].value+Station.getRange(station[0]))
                     logging.debug(sql)
-                    cursor.execute(sql)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql)
+                    last_id = cursor1.fetchone()
                     if last_id[0] is not None:
                         station[0] = last_id[0] + 1
                     else:
                         station[0] = station[0].value
 
+            with connection.cursor() as cursor2:
                 sql = "INSERT INTO `station` (`id`, `stationId`, `name`, `latitude`, `longitude`, `resolution`, `description`) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
                 logging.debug('Create Station: %s', station)
-                row_count = cursor.execute(sql, station)
-                self.connection.commit()
+                row_count = cursor2.execute(sql, station)
                 logging.debug('Created Station # %s', row_count)
 
-        except Exception as e:
-            traceback.print_exc()
-        finally:
             return row_count
+
+        except Exception as ex:
+            error_message = 'Error in creating station: %s' % station
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def get_station(self, query={}):
         """
@@ -543,8 +601,9 @@ class MySQLAdapter:
         :return Object: Details of matching station. If not found empty Object will be return.
         """
         response = None
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 out_put_order = []
                 for key in self.station_struct_keys:
                     out_put_order.append("`%s` as `%s`" % (key, key))
@@ -569,11 +628,16 @@ class MySQLAdapter:
                     for i, value in enumerate(self.station_struct_keys):
                         response[value] = station[i]
                     logging.debug('station:: %s', response)
-
-        except Exception as e:
-            traceback.print_exc()
-        finally:
             return response
+
+        except Exception as ex:
+            error_message = 'Error in retrieving station details for query: %s' % query
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def delete_station(self, id=0, station_id=''):
         """Delete given station from the database
@@ -584,24 +648,27 @@ class MySQLAdapter:
         :return int: Affected row count.
         """
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 if id > 0:
                     sql = "DELETE FROM `station` WHERE `id`=%s"
                     row_count = cursor.execute(sql, (id))
-                    self.connection.commit()
                 elif station_id:
                     sql = "DELETE FROM `station` WHERE `stationId`=%s"
 
                     row_count = cursor.execute(sql, (station_id))
-                    self.connection.commit()
                 else:
                     logging.warning('Unable to find station')
-
-        except Exception as e:
-            traceback.print_exc()
+                return row_count
+        except Exception as ex:
+            error_message = 'Error in deleting station: id = %s, stationId = %s' % (id, station_id)
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
         finally:
-            return row_count
+            if connection is not None:
+                self.pool.put(connection)
 
     def get_stations(self, query={}):
         """
@@ -627,8 +694,9 @@ class MySQLAdapter:
 
         :return list: Return list of objects with the stations data which resign in given area.
         """
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 out_order = []
                 sorted_keys = sorted(self.station_struct.keys())
                 for key in sorted_keys:
@@ -664,8 +732,14 @@ class MySQLAdapter:
                     response.append(station_struct)
 
                 return response
-        except Exception as e:
-            traceback.print_exc()
+        except Exception as ex:
+            error_message = 'Error in getting station in area of: %s' % query
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def create_source(self, source=None):
         """
@@ -691,15 +765,15 @@ class MySQLAdapter:
             source = [source]
 
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
-                sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
-
+            sql = "INSERT INTO `source` (`id`, `source`, `parameters`) VALUES (%s, %s, %s)"
+            with connection.cursor() as cursor1:
                 if len(source) < 3:
                     sql_source_id = "SELECT max(id) FROM `source`"
                     logging.debug(sql_source_id)
-                    cursor.execute(sql_source_id)
-                    last_id = cursor.fetchone()
+                    cursor1.execute(sql_source_id)
+                    last_id = cursor1.fetchone()
                     if isinstance(source, tuple):
                         source = list(source)
                     if last_id[0] is not None:
@@ -711,19 +785,25 @@ class MySQLAdapter:
                         source.append(None)
                     source = tuple(source)
 
+            with connection.cursor() as cursor2:
                 logging.debug('Create Source: %s', source)
-                row_count = cursor.execute(sql, source)
-                self.connection.commit()
+                row_count = cursor2.execute(sql, source)
                 logging.debug('Created Source # %s', row_count)
 
-        except Exception as e:
-            logging.warning(e)
-        finally:
             return {
                 'status': row_count > 0,
                 'row_count': row_count,
                 'source': source
             }
+
+        except Exception as ex:
+            error_message = 'Error in creating source: %s' % source
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
+        finally:
+            if connection is not None:
+                self.pool.put(connection)
 
     def get_source(self, source_id=0, name=''):
         """
@@ -739,8 +819,9 @@ class MySQLAdapter:
         }
         """
         response = {}
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 output_order = []
                 for key in self.source_struct_keys:
                     output_order.append("`%s` as `%s`" % (key, key))
@@ -762,10 +843,14 @@ class MySQLAdapter:
                         response[value] = source[i]
                     logging.debug('source:: %s', response)
 
-        except Exception as e:
-            logging.warning(e)
+        except Exception as ex:
+            error_message = 'Error in retrieving source: (source id: %s, name: %s)' % (source_id, name)
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
         finally:
-            return response
+            if connection is not None:
+                self.pool.put(connection)
 
     def delete_source(self, id=0):
         """Delete given source from the database
@@ -779,23 +864,30 @@ class MySQLAdapter:
         }
         """
         row_count = 0
+        connection = self.pool.get()
         try:
-            with self.connection.cursor() as cursor:
+            with connection.cursor() as cursor:
                 if id > 0:
                     sql = "DELETE FROM `source` WHERE `id`=%s"
                     row_count = cursor.execute(sql, id)
-                    self.connection.commit()
                 else:
                     logging.warning('Unable to find station')
 
-        except Exception as e:
-            logging.warning(e)
+                return {
+                    'status': row_count > 0,
+                    'row_count': row_count
+                }
+
+        except Exception as ex:
+            error_message = 'Error in retrieving source: (source id: %s)' % id
+            # TODO logging and raising is considered as a cliche' and bad practice.
+            logging.error(error_message)
+            raise DatabaseAdapterError(error_message, ex)
         finally:
-            return {
-                'status': row_count > 0,
-                'row_count': row_count
-            }
+            if connection is not None:
+                self.pool.put(connection)
 
     def close(self):
         # disconnect from server
-        self.connection.close()
+        # TODO since a connection pool is used. Need to think of an implementation for this method.
+        pass

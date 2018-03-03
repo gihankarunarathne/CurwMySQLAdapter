@@ -36,7 +36,7 @@ CREATE TABLE `curw`.`station` (
   `description` VARCHAR(255) NULL,
   PRIMARY KEY (`id`, `stationId`),
   UNIQUE INDEX `stationId_UNIQUE` (`stationId` ASC),
-  UNIQUE INDEX `name_UNIQUE` (`name` ASC)
+  UNIQUE INDEX `stationId_name_UNIQUE` (`stationId` ASC, `name` ASC)
 );
 
 CREATE TABLE `curw`.`run` (
